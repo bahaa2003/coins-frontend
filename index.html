@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="description" content="COINS STORES لخدمات شحن تطبيقات الدردشة الصوتية، شحن الألعاب، الاشتراكات، البطاقات الرقمية، وخدمات المنتجات الرقمية." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:site_name" content="COINS STORES" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="COINS STORES | شحن تطبيقات الدردشة الصوتية والألعاب والاشتراكات" />
+    <meta property="og:description" content="خدمات شحن تطبيقات الدردشة الصوتية، الألعاب، الاشتراكات، والمنتجات الرقمية من COINS STORES." />
+    <meta name="twitter:card" content="summary" />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&family=Poppins:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&family=Poppins:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" />
+    <link rel="icon" href="/favicon.ico?v=coins-stores" />
+    <link rel="shortcut icon" href="/favicon.ico?v=coins-stores" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=coins-stores" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=coins-stores" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=coins-stores" />
+    <title>COINS STORES</title>
+    <script>
+      (function () {
+        try {
+          var theme = window.localStorage.getItem('coins-stores-theme');
+          var safeTheme = theme === 'light' || theme === 'dark' ? theme : 'dark';
+          document.documentElement.classList.toggle('dark', safeTheme === 'dark');
+          document.documentElement.dataset.theme = safeTheme;
+        } catch (error) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
+    <style>
+      #app-boot-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          radial-gradient(circle at 50% 45%, rgb(212 164 45 / 0.18), transparent 52%),
+          radial-gradient(circle at 10% 0%, rgb(29 149 168 / 0.14), transparent 35%),
+          linear-gradient(180deg, #071316 0%, #03080a 100%);
+        transition: opacity 240ms ease, visibility 240ms ease;
+      }
+
+      #app-boot-loader.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .boot-loader__logo {
+        width: clamp(90px, 19vw, 132px);
+        height: clamp(90px, 19vw, 132px);
+        object-fit: contain;
+        animation: boot-logo-motion 1.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        filter: drop-shadow(0 10px 24px rgb(212 164 45 / 0.38));
+      }
+
+      @keyframes boot-logo-motion {
+        0% {
+          transform: translateY(0) rotate(0deg) scale(0.985);
+        }
+
+        50% {
+          transform: translateY(-4px) rotate(180deg) scale(1);
+        }
+
+        100% {
+          transform: translateY(0) rotate(360deg) scale(0.985);
+        }
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="app-boot-loader" aria-hidden="true">
+      <img class="boot-loader__logo" src="/src/assets/logo.webp" alt="COINS STORES" />
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

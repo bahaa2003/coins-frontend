@@ -1,0 +1,74 @@
+@layer base {
+  :root {
+    --color-bg: #f7f3e8;
+    --color-surface: #edf7f9;
+    --color-card: #ffffff;
+    --color-elevated: #fffaf0;
+    --color-border: #c9b77e;
+    --color-border-strong: #0f6f85;
+    --color-primary: #0b6f83;
+    --color-primary-soft: #c9931a;
+    --color-primary-hover: #a87408;
+    --color-text: #11262b;
+    --color-text-secondary: #50686b;
+    --color-muted: #748276;
+    --color-success: #19b885;
+    --color-error: #e11d48;
+    --color-warning: #b98210;
+    --color-button-text: #ffffff;
+    --color-bg-rgb: 247 243 232;
+    --color-surface-rgb: 237 247 249;
+    --color-card-rgb: 255 255 255;
+    --color-elevated-rgb: 255 250 240;
+    --color-border-rgb: 201 183 126;
+    --color-primary-rgb: 11 111 131;
+    --color-text-rgb: 17 38 43;
+    --color-success-rgb: 25 184 133;
+    --color-error-rgb: 225 29 72;
+    --color-warning-rgb: 185 130 16;
+    --shadow-subtle: 0 18px 44px -32px rgba(47, 40, 20, 0.28);
+    --shadow-medium: 0 26px 70px -42px rgba(11, 111, 131, 0.32);
+    --shadow-focus: 0 0 0 4px rgba(201, 147, 26, 0.2);
+    --shadow-gold: 0 22px 60px -34px rgba(201, 147, 26, 0.46);
+    --radius-sm: 0.875rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.5rem;
+    --radius-2xl: 1.875rem;
+    --shell-max-width: 82rem;
+    --backdrop-blur: 18px;
+  }
+
+  :root.dark {
+    --color-bg: #03080a;
+    --color-surface: #071316;
+    --color-card: #0b1b20;
+    --color-elevated: #10282f;
+    --color-border: #254d54;
+    --color-border-strong: #d1a12b;
+    --color-primary: #1d95a8;
+    --color-primary-soft: #d4a42d;
+    --color-primary-hover: #f0c85a;
+    --color-text: #f7f2df;
+    --color-text-secondary: #c9d3c6;
+    --color-muted: #8ea29f;
+    --color-success: #34d399;
+    --color-error: #fb7185;
+    --color-warning: #fbbf24;
+    --color-button-text: #171717;
+    --color-bg-rgb: 3 8 10;
+    --color-surface-rgb: 7 19 22;
+    --color-card-rgb: 11 27 32;
+    --color-elevated-rgb: 16 40 47;
+    --color-border-rgb: 37 77 84;
+    --color-primary-rgb: 29 149 168;
+    --color-text-rgb: 247 242 223;
+    --color-success-rgb: 52 211 153;
+    --color-error-rgb: 251 113 133;
+    --color-warning-rgb: 251 191 36;
+    --shadow-subtle: 0 22px 54px -36px rgba(0, 0, 0, 0.72);
+    --shadow-medium: 0 36px 92px -44px rgba(0, 0, 0, 0.92);
+    --shadow-focus: 0 0 0 4px rgba(212, 164, 45, 0.22);
+    --shadow-gold: 0 28px 72px -30px rgba(212, 164, 45, 0.42);
+  }
+}

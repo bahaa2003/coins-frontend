@@ -1,0 +1,589 @@
+.authPage {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 1rem;
+  color: var(--color-text);
+  background:
+    radial-gradient(36rem circle at 12% 8%, rgb(var(--color-primary-rgb) / 0.2), transparent 48%),
+    radial-gradient(34rem circle at 88% 10%, rgb(212 164 45 / 0.18), transparent 46%),
+    linear-gradient(145deg, rgb(var(--color-bg-rgb) / 0.98), rgb(var(--color-surface-rgb) / 0.84));
+}
+
+.authPage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(90deg, rgb(var(--color-primary-rgb) / 0.05) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(var(--color-primary-rgb) / 0.04) 1px, transparent 1px);
+  background-size: 4.75rem 4.75rem;
+  mask-image: radial-gradient(circle at 50% 20%, black, transparent 72%);
+}
+
+.authPage::after {
+  content: "";
+  position: absolute;
+  inset: auto -14rem -18rem auto;
+  z-index: -1;
+  width: 32rem;
+  height: 32rem;
+  border-radius: 999px;
+  background: rgb(212 164 45 / 0.14);
+  filter: blur(4rem);
+}
+
+.backButton {
+  position: fixed;
+  top: 1rem;
+  inset-inline-start: 1rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.4rem;
+  border: 1px solid rgb(var(--color-border-rgb) / 0.5);
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  color: var(--color-text-secondary);
+  background: rgb(var(--color-card-rgb) / 0.68);
+  box-shadow: var(--shadow-subtle);
+  backdrop-filter: blur(18px);
+  transition: transform 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.backButton:hover {
+  transform: translateY(-1px);
+  border-color: rgb(var(--color-primary-rgb) / 0.38);
+  color: var(--color-primary);
+}
+
+.topControls {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  z-index: 20;
+  transform: translateX(-50%);
+}
+
+.topControlsInner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.authShell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(22rem, 1.05fr);
+  gap: 1rem;
+  width: min(100%, 72rem);
+  min-height: calc(100svh - 2rem);
+  margin: 0 auto;
+  align-items: center;
+  padding-top: 3.75rem;
+}
+
+.formPane {
+  width: min(100%, 30.5rem);
+  justify-self: center;
+}
+
+.brandBlock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.brandIcon {
+  display: grid;
+  place-items: center;
+  width: 3.8rem;
+  height: 3.8rem;
+  border: 1px solid rgb(var(--color-primary-rgb) / 0.18);
+  border-radius: 1.15rem;
+  background:
+    radial-gradient(circle at 35% 20%, rgb(255 255 255 / 0.78), transparent 42%),
+    linear-gradient(145deg, rgb(var(--color-card-rgb) / 0.9), rgb(var(--color-elevated-rgb) / 0.72));
+  box-shadow: 0 18px 42px -28px rgb(var(--color-primary-rgb) / 0.72);
+}
+
+.brandIcon img {
+  width: 2.65rem;
+  height: 2.65rem;
+  object-fit: contain;
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.35rem;
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.formTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.formSubtitle {
+  margin: 0.55rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.85;
+}
+
+.modeToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-bottom: 0.8rem;
+  border: 1px solid rgb(var(--color-border-rgb) / 0.4);
+  border-radius: 1.1rem;
+  padding: 0.35rem;
+  background: rgb(var(--color-card-rgb) / 0.62);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.modeToggleActive {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-soft));
+}
+
+.formCard {
+  border: 1px solid rgb(var(--color-border-rgb) / 0.34);
+  border-radius: 1.4rem;
+  padding: 1rem;
+  background:
+    linear-gradient(180deg, rgb(var(--color-card-rgb) / 0.86), rgb(var(--color-elevated-rgb) / 0.72));
+  box-shadow:
+    0 24px 70px -42px rgb(0 0 0 / 0.42),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
+  backdrop-filter: blur(22px);
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.authInput {
+  border-radius: 0.95rem;
+  border-color: rgb(var(--color-border-rgb) / 0.5);
+  background: rgb(var(--color-card-rgb) / 0.74);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 12px 26px -24px rgb(var(--color-primary-rgb) / 0.55);
+}
+
+.authInput:hover {
+  border-color: rgb(var(--color-primary-rgb) / 0.34);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 14px 30px -24px rgb(var(--color-primary-rgb) / 0.68);
+}
+
+.authInput:focus {
+  border-color: rgb(var(--color-primary-rgb) / 0.78);
+  background: rgb(var(--color-card-rgb) / 0.95);
+  box-shadow:
+    0 0 0 1px rgb(240 200 90 / 0.3),
+    0 0 0 4px rgb(var(--color-primary-rgb) / 0.14),
+    0 0 26px -10px rgb(var(--color-primary-rgb) / 0.82),
+    0 0 34px -18px rgb(240 200 90 / 0.8);
+}
+
+.authSelect {
+  border: 1px solid rgb(var(--color-border-rgb) / 0.5);
+  background: rgb(var(--color-card-rgb) / 0.74);
+  color: var(--color-text);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 12px 26px -24px rgb(var(--color-primary-rgb) / 0.55);
+}
+
+.authSelect:hover {
+  border-color: rgb(var(--color-primary-rgb) / 0.34);
+}
+
+.authSelect:focus {
+  border-color: rgb(var(--color-primary-rgb) / 0.78);
+  background: rgb(var(--color-card-rgb) / 0.95);
+  box-shadow:
+    0 0 0 1px rgb(240 200 90 / 0.3),
+    0 0 0 4px rgb(var(--color-primary-rgb) / 0.14),
+    0 0 26px -10px rgb(var(--color-primary-rgb) / 0.82),
+    0 0 34px -18px rgb(240 200 90 / 0.8);
+}
+
+.primaryButton {
+  width: 100%;
+  min-height: 2.9rem;
+  border-radius: 1rem;
+  color: #fff;
+  background: linear-gradient(135deg, #0b6f83, #1d95a8 48%, #c9931a);
+  box-shadow: 0 18px 42px -25px rgb(var(--color-primary-rgb) / 0.9);
+}
+
+.secondaryStepButton {
+  min-height: 2.9rem;
+  border-radius: 1rem;
+}
+
+.stepActions {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 0.7rem;
+}
+
+.stepProgress {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.7rem;
+  border: 1px solid rgb(var(--color-border-rgb) / 0.36);
+  border-radius: 0.9rem;
+  padding: 0.45rem 0.6rem;
+  color: var(--color-text-secondary);
+  background: rgb(var(--color-surface-rgb) / 0.5);
+}
+
+.stepItem span {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  background: rgb(var(--color-primary-rgb) / 0.12);
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.stepItem small {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.stepItemActive,
+.stepItemDone {
+  border-color: rgb(var(--color-primary-rgb) / 0.32);
+  color: var(--color-text);
+  background: rgb(var(--color-primary-rgb) / 0.1);
+}
+
+.verificationStep {
+  display: grid;
+  gap: 0.9rem;
+  text-align: center;
+}
+
+.verificationStep h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.verificationStep p {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+}
+
+.successBadge {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto;
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: rgb(var(--color-primary-rgb) / 0.12);
+}
+
+.errorBox {
+  border: 1px solid rgb(var(--color-error-rgb) / 0.22);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  background: rgb(var(--color-error-rgb) / 0.08);
+}
+
+.errorIcon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  color: var(--color-error);
+  background: rgb(var(--color-error-rgb) / 0.12);
+}
+
+.visualPane {
+  position: relative;
+  min-height: 38rem;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-primary-rgb) / 0.22);
+  border-radius: 2rem;
+  background:
+    linear-gradient(145deg, rgb(3 8 22 / 0.94), rgb(7 31 38 / 0.9)),
+    radial-gradient(circle at 32% 18%, rgb(29 149 168 / 0.42), transparent 42%);
+  box-shadow: 0 30px 90px -48px rgb(var(--color-primary-rgb) / 0.92);
+}
+
+.visualPane::after {
+  content: "";
+  position: absolute;
+  inset: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 1.55rem;
+  pointer-events: none;
+}
+
+.visualGlowOne,
+.visualGlowTwo {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(3.5rem);
+}
+
+.visualGlowOne {
+  width: 18rem;
+  height: 18rem;
+  top: -5rem;
+  inset-inline-start: -5rem;
+  background: rgb(29 149 168 / 0.44);
+}
+
+.visualGlowTwo {
+  width: 20rem;
+  height: 20rem;
+  right: -6rem;
+  bottom: -6rem;
+  background: rgb(212 164 45 / 0.34);
+}
+
+.goldLines {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(115deg, transparent 0 46%, rgb(240 200 90 / 0.16) 46.2% 46.6%, transparent 46.8%),
+    linear-gradient(115deg, transparent 0 62%, rgb(29 149 168 / 0.16) 62.2% 62.6%, transparent 62.8%);
+}
+
+.visualContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: inherit;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: #f7f2df;
+}
+
+.visualLogo {
+  display: grid;
+  place-items: center;
+  width: 5.5rem;
+  height: 5.5rem;
+  border: 1px solid rgb(240 200 90 / 0.22);
+  border-radius: 1.35rem;
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 22px 55px -32px rgb(240 200 90 / 0.7);
+}
+
+.visualLogo img {
+  width: 4rem;
+  height: 4rem;
+  object-fit: contain;
+}
+
+.visualKicker {
+  color: #f0c85a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.visualContent h2 {
+  width: min(100%, 28rem);
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  line-height: 1.18;
+  font-weight: 900;
+}
+
+.visualContent p {
+  width: min(100%, 27rem);
+  margin: 0;
+  color: rgb(247 242 223 / 0.76);
+  line-height: 1.9;
+}
+
+.globalAccessBar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.footerAccessBar {
+  width: min(100%, 48rem);
+  margin: 0.8rem auto 0;
+}
+
+.globalAccessItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  border: 1px solid rgb(var(--color-border-rgb) / 0.34);
+  border-radius: 999px;
+  padding: 0 0.85rem;
+  color: var(--color-text-secondary);
+  background: rgb(var(--color-card-rgb) / 0.62);
+  box-shadow: var(--shadow-subtle);
+  backdrop-filter: blur(16px);
+}
+
+.globalAccessItem svg {
+  color: var(--color-primary);
+}
+
+.privacyStrip {
+  width: min(100%, 50rem);
+  margin: 0.8rem auto 0;
+  border: 1px solid rgb(var(--color-border-rgb) / 0.28);
+  border-radius: 1rem;
+  padding: 0.8rem 1rem;
+  color: var(--color-text-secondary);
+  background: rgb(var(--color-card-rgb) / 0.58);
+  text-align: center;
+  font-size: 0.82rem;
+  line-height: 1.8;
+  backdrop-filter: blur(16px);
+}
+
+@media (max-width: 900px) {
+  .authPage {
+    padding: 0.8rem;
+  }
+
+  .authShell {
+    grid-template-columns: 1fr;
+    width: min(100%, 32rem);
+    padding-top: 4.25rem;
+  }
+
+  .visualPane {
+    min-height: 15rem;
+    order: -1;
+  }
+
+  .visualContent {
+    padding: 1.4rem;
+  }
+
+  .visualLogo,
+  .visualContent img {
+    display: none;
+  }
+
+  .visualContent h2 {
+    font-size: 1.7rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .backButton span {
+    display: none;
+  }
+
+  .backButton {
+    top: 0.7rem;
+  }
+
+  .topControls {
+    top: 0.7rem;
+  }
+
+  .backButton {
+    width: 2.35rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .authShell {
+    min-height: calc(100svh - 1.6rem);
+  }
+
+  .visualPane {
+    min-height: 8.75rem;
+    border-radius: 1.45rem;
+  }
+
+  .visualPane::after {
+    inset: 0.5rem;
+    border-radius: 1.05rem;
+  }
+
+  .visualContent {
+    gap: 0.38rem;
+    padding: 0.75rem;
+  }
+
+  .visualKicker {
+    font-size: 0.62rem;
+  }
+
+  .visualContent h2 {
+    width: min(100%, 17rem);
+    font-size: 1.08rem;
+    line-height: 1.22;
+  }
+
+  .visualContent p {
+    width: min(100%, 21rem);
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .brandBlock {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .brandIcon {
+    margin: 0 auto;
+  }
+
+  .formCard {
+    padding: 0.85rem;
+  }
+
+  .stepActions {
+    grid-template-columns: 1fr;
+  }
+}

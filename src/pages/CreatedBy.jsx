@@ -1,0 +1,126 @@
+import React from 'react';
+import { Code2, Phone, Sparkles, UsersRound } from 'lucide-react';
+import Card from '../components/ui/Card';
+import { buttonClassName, cn } from '../components/ui/Button';
+import { useLanguage } from '../context/LanguageContext';
+import digitechImage from '../assets/digitech-solutions.jpg';
+import ahmedImage from '../assets/WhatsApp Image 2026-03-26 at 7.18.08 AM.jpeg';
+import kareemImage from '../assets/WhatsApp Image 2026-03-26 at 7.18.08 AM (1).jpeg';
+import bahaaImage from '../assets/WhatsApp Image 2026-03-26 at 7.18.08 AM (2).jpeg';
+
+const CreatedBy = () => {
+  const { dir } = useLanguage();
+  const isArabic = dir === 'rtl';
+  const whatsappMessage = encodeURIComponent('كنت محتاج تفاصيل عن انشاء موقع');
+  const whatsappUrl = `https://wa.me/201019603238?text=${whatsappMessage}`;
+
+  const teamMembers = [
+    {
+      name: isArabic ? 'ENG: AHMED ELSHARKAWY' : 'ENG: AHMED ELSHARKAWY',
+      role: isArabic
+        ? 'مهندس برمجيات ومسؤول الشركة ومتخصص Frontend Development'
+        : 'Software engineer, company lead, and Frontend Development specialist',
+      image: ahmedImage,
+    },
+    {
+      name: isArabic ? 'ENG: KAREEM MOHAMED' : 'ENG: KAREEM MOHAMED',
+      role: isArabic
+        ? 'مهندس برمجيات ومدير الشركة ومتخصص Cyber Security'
+        : 'Software engineer, company manager, and Cyber Security specialist',
+      image: kareemImage,
+    },
+    {
+      name: isArabic ? 'ENG: BAHAA MOHAMED' : 'ENG: BAHAA MOHAMED',
+      role: isArabic
+        ? 'مهندس برمجيات وأحد أفضل مؤسسي الشركة ومتخصص Backend Development'
+        : 'Software engineer, one of the founders, and Backend Development specialist',
+      image: bahaaImage,
+    },
+  ];
+
+  return (
+    <div className="mx-auto w-full max-w-4xl space-y-5 px-3 py-4 sm:px-4 sm:py-6">
+      <Card className="overflow-hidden rounded-[2rem] border border-[color:rgb(var(--color-border-rgb)/0.72)] bg-[linear-gradient(145deg,rgb(var(--color-card-rgb)/0.98),rgb(var(--color-surface-rgb)/0.9))] p-5 shadow-[0_26px_90px_-58px_rgba(20,24,35,0.16)] sm:p-7">
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-[color:rgb(var(--color-primary-rgb)/0.22)] bg-[color:rgb(var(--color-primary-rgb)/0.1)] text-[var(--color-primary)]">
+            <Code2 className="h-8 w-8" />
+          </div>
+
+          <p className="inline-flex items-center gap-2 rounded-full border border-[color:rgb(var(--color-primary-rgb)/0.2)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] px-3 py-1 text-xs font-black text-[var(--color-primary)]">
+            <Sparkles className="h-3.5 w-3.5" />
+            COINS STORES
+          </p>
+
+          <h1 className="mt-4 text-2xl font-black text-[var(--color-text)] sm:text-3xl">
+            {isArabic ? 'COINS STORES من تنفيذ DIGI TECH' : 'COINS STORES built by DIGI TECH'}
+          </h1>
+
+          <img
+            src={digitechImage}
+            alt="DIGI TECH"
+            className="mt-4 h-auto w-full max-w-[26rem] rounded-[1.25rem] border border-[color:rgb(var(--color-border-rgb)/0.7)] object-cover shadow-[0_18px_42px_-28px_rgba(15,23,42,0.26)]"
+            loading="lazy"
+            decoding="async"
+          />
+
+          <p className="mt-3 max-w-xl text-sm font-semibold leading-7 text-[var(--color-text-secondary)]">
+            {isArabic
+              ? 'نحن شركة برمجة نصمم ونبني منتجات رقمية احترافية، وCOINS STORES أحد أعمالنا التي تعكس اهتمامنا بالتفاصيل وسهولة الاستخدام.'
+              : 'We are a software company that designs and builds professional digital products, and COINS STORES is one of our works that reflects our focus on detail and usability.'}
+          </p>
+        </div>
+      </Card>
+      <div className="space-y-5 px-1 py-1 text-center text-[var(--color-text)] sm:px-2 sm:py-2">
+          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] px-4 py-1.5 text-[0.78rem] font-black tracking-[0.12em] text-[var(--color-primary)] shadow-[0_8px_22px_-18px_rgba(15,23,42,0.22)]">
+            <UsersRound className="h-4 w-4" />
+            {isArabic ? 'فريق DigiTech Solutions' : 'DigiTech Solutions Team'}
+          </div>
+
+          <p className="mx-auto mt-4 max-w-2xl text-[0.92rem] font-medium leading-7 text-[var(--color-text-secondary)] sm:text-[1rem]">
+            {isArabic
+              ? 'خيارات مخصصة تعمل بروح واحدة: بناء منتج يليق بطموحاتك.'
+              : 'Custom options working as one team: building a product that matches your ambitions.'}
+          </p>
+
+          <div className="mt-8 grid gap-8 sm:gap-10">
+            {teamMembers.map((member) => (
+              <section key={member.name} className="mx-auto max-w-xl text-center">
+                <div className="mx-auto flex justify-center">
+                  <img
+                    src={member.image}
+                    alt={member.name}
+                    className="h-28 w-28 rounded-full border-[4px] border-[color:rgb(var(--color-primary-rgb)/0.22)] object-cover shadow-[0_12px_28px_-18px_rgba(15,23,42,0.24)] sm:h-32 sm:w-32"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+
+                <h2 className="mt-4 text-lg font-black tracking-[0.02em] text-[var(--color-text)] sm:text-xl">
+                  {member.name}
+                </h2>
+
+                <p className="mx-auto mt-2 max-w-md text-[0.9rem] font-medium leading-7 text-[var(--color-text-secondary)] sm:text-[0.95rem]">
+                  {member.role}
+                </p>
+              </section>
+            ))}
+          </div>
+
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              buttonClassName,
+              'glow-button mt-8 h-12 w-full rounded-[1.1rem] border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[linear-gradient(135deg,rgb(var(--color-primary-rgb)/0.96),rgb(var(--color-primary-soft)/0.96)_55%,rgb(var(--color-primary-hover)/0.98))] px-6 text-base text-[var(--color-primary-foreground)] shadow-[0_18px_44px_-26px_rgba(var(--color-primary-rgb),0.38)] hover:brightness-[1.02]'
+            )}
+          >
+            <Phone className="h-4 w-4" />
+            {isArabic ? 'تواصل مع مهندسين الموقع' : 'Contact Site Engineers'}
+          </a>
+      </div>
+    </div>
+  );
+};
+
+export default CreatedBy;
