@@ -67,6 +67,7 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
           placeholder: label,
           type: normalizeFieldType(field?.type),
           required: field?.required !== false,
+          isVerifiable: field?.isVerifiable === true,
           options: resolveFieldOptions(field),
         };
       })
@@ -92,6 +93,7 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
           || key,
         type: normalizeFieldType(field?.type),
         required: field?.required !== false,
+        isVerifiable: field?.isVerifiable === true,
         options: resolveFieldOptions(field),
       };
     });
@@ -120,6 +122,7 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
         placeholder: FIELD_COPY[field]?.[language] || field,
         type: 'text',
         required: true,
+        isVerifiable: false,
         options: [],
       }));
     }
@@ -131,6 +134,7 @@ export const resolveProductOrderFields = (product, language = 'ar') => {
     placeholder: FIELD_COPY.playerId[language] || FIELD_COPY.playerId.en,
     type: 'text',
     required: true,
+    isVerifiable: false,
     options: [],
   }];
 };

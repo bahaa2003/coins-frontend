@@ -519,6 +519,9 @@ const normaliseUser = (u) => {
     permissions: Array.isArray(u.permissions) ? u.permissions.map((item) => String(item || '').trim()).filter(Boolean) : [],
     twoFactorEnabled: Boolean(u.twoFactorEnabled ?? u.isTwoFactorEnabled),
     isTwoFactorEnabled: Boolean(u.isTwoFactorEnabled ?? u.twoFactorEnabled),
+    isApiEnabled: Boolean(u.isApiEnabled),
+    whitelistIps: Array.isArray(u.whitelistIps) ? u.whitelistIps.map((item) => String(item || '').trim()).filter(Boolean) : [],
+    webhookUrl: String(u.webhookUrl || ''),
   };
 };
 
@@ -1379,6 +1382,7 @@ const productToBE = (fe) => {
           label,
           type: ['text', 'number', 'email', 'select', 'image', 'file'].includes(type) ? type : 'text',
           required: field?.required !== false,
+          isVerifiable: field?.isVerifiable === true,
         };
       })
       .filter((field) => field.name && field.label);
@@ -1721,6 +1725,24 @@ const realApi = {
     },
   },
 
+  me: {
+    generateApiToken: async () => {
+      const res = await http.post('/me/api-token/generate');
+      return unwrap(res);
+    },
+
+    updateApiSettings: async ({ whitelistIps = [], webhookUrl = '' } = {}) => {
+      const payload = {
+        whitelistIps: Array.isArray(whitelistIps)
+          ? whitelistIps.map((item) => String(item || '').trim()).filter(Boolean)
+          : [],
+        webhookUrl: String(webhookUrl || '').trim(),
+      };
+      const res = await http.put('/me/api-settings', payload);
+      return unwrap(res);
+    },
+  },
+
   notifications: {
     unreadCount: async () => {
       const res = await http.get('/me/notifications/unread-count');
@@ -1874,6 +1896,11 @@ const realApi = {
       return fallback;
     },
 
+    verifyField: async (id, fieldValue) => {
+      const res = await http.post(`/products/${id}/verify-field`, { fieldValue });
+      return unwrap(res);
+    },
+
     /**
      * POST /admin/products — manual product creation.
      *
@@ -1954,8 +1981,10 @@ const realApi = {
     /**
      * GET /admin/provider-products/:providerId — raw provider products.
      */
-    listProviderProducts: async (providerId) => {
-      const res = await http.get(`/admin/provider-products/${providerId}`);
+    listProviderProducts: async (providerId, { limit = 2000 } = {}) => {
+      const res = await http.get(`/admin/provider-products/${providerId}`, {
+        params: { limit },
+      });
       const data = unwrap(res);
       const items = Array.isArray(data) ? data : (data?.providerProducts || []);
       return items.map((pp) => ({
@@ -2509,6 +2538,7 @@ const realApi = {
       if (updates.coins !== undefined) body.coins = Number(updates.coins);
       if (updates.balance !== undefined) body.balance = Number(updates.balance);
       if (updates.currentBalance !== undefined) body.currentBalance = Number(updates.currentBalance);
+      if (updates.isApiEnabled !== undefined) body.isApiEnabled = Boolean(updates.isApiEnabled);
 
       const isSelf = actorContext?.id === userId;
       const url = isSelf ? '/users/me' : `/admin/users/${userId}`;

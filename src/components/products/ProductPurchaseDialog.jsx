@@ -161,6 +161,9 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
   const [userId, setUserId] = useState('');
   const [orderFieldValues, setOrderFieldValues] = useState({});
   const [orderFieldFiles, setOrderFieldFiles] = useState({});
+  const [verifiedData, setVerifiedData] = useState({});
+  const [verificationLoading, setVerificationLoading] = useState({});
+  const [verificationErrors, setVerificationErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -182,6 +185,9 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
     setUserId('');
     setOrderFieldValues({});
     setOrderFieldFiles({});
+    setVerifiedData({});
+    setVerificationLoading({});
+    setVerificationErrors({});
     setFormError('');
     setServerError('');
     setSuccessOrder(null);
@@ -325,6 +331,108 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
     return '';
   };
 
+  const clearVerificationForField = (key) => {
+    setVerifiedData((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setVerificationErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const handleVerifyField = async (field, value) => {
+    if (!product?.id) return;
+
+    const key = String(field?.key || '').trim();
+    const fieldValue = sanitizeOrderFieldValue(value).trim();
+    if (!key) return;
+
+    if (!fieldValue) {
+      setVerificationErrors((prev) => ({
+        ...prev,
+        [key]: language === 'en' ? 'Enter the value first.' : 'أدخل القيمة أولاً.',
+      }));
+      setVerifiedData((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+
+    setVerificationLoading((prev) => ({ ...prev, [key]: true }));
+    setVerificationErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+
+    try {
+      const result = await apiClient.products.verifyField(product.id, fieldValue);
+      setVerifiedData((prev) => ({ ...prev, [key]: result }));
+    } catch (error) {
+      setVerifiedData((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      setVerificationErrors((prev) => ({
+        ...prev,
+        [key]: error?.response?.data?.message || error?.message || (language === 'en' ? 'Verification failed.' : 'فشل التحقق.'),
+      }));
+    } finally {
+      setVerificationLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const renderVerificationResult = (field) => {
+    const key = String(field?.key || '').trim();
+    const data = verifiedData[key];
+    const error = verificationErrors[key];
+
+    if (error) {
+      return <p className="mt-1 text-xs font-bold text-red-400">{error}</p>;
+    }
+
+    if (!data) return null;
+
+    return (
+      <div className="mt-2 flex items-center gap-2 rounded-xl border border-teal-400/25 bg-teal-500/10 px-3 py-2 text-start text-xs font-bold text-teal-200">
+        {data.avatar ? (
+          <img src={data.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-teal-300/30" />
+        ) : null}
+        <div className="min-w-0">
+          <p className="truncate">{data.nickName || data.uid}</p>
+          {data.uid ? <p className="truncate text-[0.68rem] text-teal-100/70" dir="ltr">{data.uid}</p> : null}
+        </div>
+      </div>
+    );
+  };
+
+  const renderVerifyButton = (field, value) => {
+    const key = String(field?.key || '').trim();
+    if (field?.isVerifiable !== true || !key) return null;
+
+    return (
+      <button
+        type="button"
+        onClick={() => handleVerifyField(field, value)}
+        disabled={Boolean(verificationLoading[key])}
+        className="min-h-[2.75rem] rounded-xl border border-teal-400/25 bg-teal-500/15 px-3 text-sm font-black text-teal-100 transition hover:bg-teal-500/25 disabled:cursor-wait disabled:opacity-60"
+      >
+        {verificationLoading[key] ? (
+          <span className="mx-auto block h-4 w-4 animate-spin rounded-full border-2 border-teal-100/30 border-t-teal-100" />
+        ) : (
+          'تحقق'
+        )}
+      </button>
+    );
+  };
+
   const handlePurchase = async () => {
     if (!product || !quantityMeta) return;
     const validationError = validateForm();
@@ -367,6 +475,7 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
             placeholder: field.placeholder,
             type: field.type,
             required: field.required,
+            isVerifiable: field.isVerifiable === true,
             options: field.options,
           }));
 
@@ -500,21 +609,27 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
 
     if (type === 'select') {
       return (
-        <label key={key} className="purchase-dialog-field">
+        <div key={key} className="purchase-dialog-field">
           <span>{label}</span>
-          <select
-            value={orderFieldValues[key] || ''}
-            onChange={(event) => {
-              setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
-              setFormError('');
-            }}
-          >
-            <option value="">{placeholder}</option>
-            {(field.options || []).map((option) => (
-              <option key={String(option)} value={String(option)}>{String(option)}</option>
-            ))}
-          </select>
-        </label>
+          <div className={field?.isVerifiable === true ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
+            <select
+              value={orderFieldValues[key] || ''}
+              onChange={(event) => {
+                setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
+                clearVerificationForField(key);
+                setFormError('');
+              }}
+              className="min-h-[2.75rem] w-full rounded-xl border border-slate-400/20 bg-white px-3 text-center text-sm font-extrabold text-slate-900 outline-none focus:border-teal-400/50 dark:bg-slate-950/60 dark:text-white"
+            >
+              <option value="">{placeholder}</option>
+              {(field.options || []).map((option) => (
+                <option key={String(option)} value={String(option)}>{String(option)}</option>
+              ))}
+            </select>
+            {renderVerifyButton(field, orderFieldValues[key] || '')}
+          </div>
+          {field?.isVerifiable === true ? renderVerificationResult(field) : null}
+        </div>
       );
     }
 
@@ -539,18 +654,23 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
     }
 
     return (
-      <label key={key} className="purchase-dialog-field">
+      <div key={key} className="purchase-dialog-field">
         <span>{label}</span>
-        <input
-          type={type === 'number' ? 'number' : type === 'email' ? 'email' : 'text'}
-          value={orderFieldValues[key] || ''}
-          onChange={(event) => {
-            setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
-            setFormError('');
-          }}
-          placeholder={placeholder}
-        />
-      </label>
+        <div className={field?.isVerifiable === true ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
+          <input
+            type={type === 'number' ? 'number' : type === 'email' ? 'email' : 'text'}
+            value={orderFieldValues[key] || ''}
+            onChange={(event) => {
+              setOrderFieldValues((prev) => ({ ...prev, [key]: event.target.value }));
+              clearVerificationForField(key);
+              setFormError('');
+            }}
+            placeholder={placeholder}
+          />
+          {renderVerifyButton(field, orderFieldValues[key] || '')}
+        </div>
+        {field?.isVerifiable === true ? renderVerificationResult(field) : null}
+      </div>
     );
   };
 
@@ -694,18 +814,23 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
             </div>
 
             {hasPrimaryOrderField ? (
-              <label className="purchase-dialog-field">
+              <div className="purchase-dialog-field">
                 <span>{primaryOrderFieldLabel}</span>
-                <input
-                  type="text"
-                  value={userId}
-                  onChange={(event) => {
-                    setUserId(event.target.value);
-                    setFormError('');
-                  }}
-                  placeholder={primaryOrderFieldPlaceholder || copy.userIdPlaceholder}
-                />
-              </label>
+                <div className={primaryOrderField?.isVerifiable === true ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : ''}>
+                  <input
+                    type="text"
+                    value={userId}
+                    onChange={(event) => {
+                      setUserId(event.target.value);
+                      clearVerificationForField(primaryOrderFieldKey);
+                      setFormError('');
+                    }}
+                    placeholder={primaryOrderFieldPlaceholder || copy.userIdPlaceholder}
+                  />
+                  {renderVerifyButton(primaryOrderField, userId)}
+                </div>
+                {renderVerificationResult(primaryOrderField)}
+              </div>
             ) : null}
 
             {additionalOrderFields.map(renderAdditionalOrderField)}

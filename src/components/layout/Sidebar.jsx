@@ -163,6 +163,13 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
       roles: ['customer']
     },
     { icon: Target, label: 'بيع التارجت', path: '/buy-target', roles: ['customer'] },
+    {
+      icon: Code2,
+      label: dir === 'rtl' ? 'للمطورين (API)' : 'Developer API',
+      path: '/developers/api',
+      roles: ['customer', 'admin', ...SUPERVISOR_ROLES],
+      visible: (currentUser) => currentUser?.isApiEnabled === true,
+    },
     { icon: Code2, label: dir === 'rtl' ? 'تم الإنشاء بواسطة' : 'Created By', path: '/created-by', roles: ['customer'] },
     { icon: UsersRound, label: t('sidebar.users'), path: '/admin/users', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_USERS },
     { icon: UserCog, label: t('sidebar.supervisors'), path: '/admin/supervisors', roles: ['admin'] },
@@ -193,7 +200,9 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
   ];
 
   const filteredNavItems = navItems.filter((item) => (
-    hasRequiredRole(user?.role || 'customer', item.roles) && hasPermission(user, item.permission)
+    hasRequiredRole(user?.role || 'customer', item.roles)
+    && hasPermission(user, item.permission)
+    && (typeof item.visible !== 'function' || item.visible(user))
   ));
   const showWalletCard = String(user?.role || '').toLowerCase() === 'customer' && isExpanded;
   const isAdmin = String(user?.role || '').toLowerCase() === 'admin';

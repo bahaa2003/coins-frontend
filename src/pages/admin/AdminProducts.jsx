@@ -16,6 +16,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { formatNumber } from '../../utils/intl';
 import { validateProductForm, getProductStatus, getAvailableProductStatuses } from '../../utils/productStatus';
 
+const PROVIDER_PRODUCTS_LIMIT = 2000;
+
 const getProviderProductSearchToken = (product) =>
     `${product?.name || ''} ${getProviderProductPriceValue(product) || ''}`.toLowerCase();
 
@@ -231,6 +233,7 @@ const createDynamicFieldRow = (seed = {}) => {
         label: String(seed.label || seed.labelAr || '').trim(),
         type: normalizeDynamicFieldType(seed.type),
         required: seed.required !== false,
+        isVerifiable: seed.isVerifiable === true,
     };
 };
 
@@ -243,6 +246,7 @@ const extractDynamicFieldRows = (product = {}) => {
             label: field?.label || field?.labelAr || field?.name || '',
             type: field?.type,
             required: field?.required,
+            isVerifiable: field?.isVerifiable,
         }));
     }
 
@@ -255,6 +259,7 @@ const extractDynamicFieldRows = (product = {}) => {
             label: field?.labelAr || field?.label || field?.name || field?.key || '',
             type: field?.type || 'text',
             required: field?.required,
+            isVerifiable: field?.isVerifiable,
         }))
         .filter((field) => field.name && field.label);
 };
@@ -271,6 +276,7 @@ const buildDynamicFieldsPayload = (fieldRows = []) => (
         label,
         type: normalizeDynamicFieldType(row?.type),
         required: row?.required !== false,
+        isVerifiable: row?.isVerifiable === true,
     };
 }).filter((field) => field.name && field.label);
 
@@ -286,6 +292,7 @@ const buildOrderFieldsPayloadFromDynamic = (dynamicFields = []) => (
     placeholderAr: '',
     enabled: true,
     required: field.required !== false,
+    isVerifiable: field.isVerifiable === true,
     type: normalizeDynamicFieldType(field.type),
 }));
 
@@ -521,7 +528,7 @@ const AdminProducts = () => {
             return;
         }
         apiClient.products
-            .listProviderProducts(selectedSupplier)
+            .listProviderProducts(selectedSupplier, { limit: PROVIDER_PRODUCTS_LIMIT })
             .then((items) => {
                 const nextItems = Array.isArray(items) ? items : [];
                 setProviderProducts(nextItems);
@@ -566,6 +573,10 @@ const AdminProducts = () => {
 
         return providerProducts.filter((product) => getProviderProductSearchToken(product).includes(normalizedQuery));
     }, [providerProducts, providerProductQuery]);
+    const visibleProviderProducts = useMemo(
+        () => filteredProviderProducts.slice(0, PROVIDER_PRODUCTS_LIMIT),
+        [filteredProviderProducts]
+    );
     const activeProviders = useMemo(
         () => providers.filter((provider) => provider.isActive !== false),
         [providers]
@@ -1748,6 +1759,9 @@ const AdminProducts = () => {
                                                     <div className="flex items-center justify-between gap-3 px-1 text-xs text-[var(--color-muted)]">
                                                         <span>
                                                             {isEnglish ? `${filteredProviderProducts.length} products found` : `${filteredProviderProducts.length} منتج متاح`}
+                                                            {filteredProviderProducts.length > visibleProviderProducts.length
+                                                                ? (isEnglish ? `, showing ${visibleProviderProducts.length}` : `، يتم عرض ${visibleProviderProducts.length}`)
+                                                                : ''}
                                                         </span>
                                                         {selectedProviderProduct ? (
                                                             <span className="truncate text-[var(--color-primary)]">
@@ -1757,7 +1771,7 @@ const AdminProducts = () => {
                                                     </div>
 
                                                     <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                                                        {filteredProviderProducts.length ? filteredProviderProducts.map((providerProduct) => {
+                                                        {visibleProviderProducts.length ? visibleProviderProducts.map((providerProduct) => {
                                                             const isSelected = hasMatchingProviderProduct(
                                                                 providerProduct,
                                                                 productForm.providerProductId,
@@ -2170,7 +2184,7 @@ const AdminProducts = () => {
                                         ...prev,
                                         dynamicFields: [
                                             ...(prev.dynamicFields || []),
-                                            { name: '', label: '', type: 'text', required: true },
+                                            { name: '', label: '', type: 'text', required: true, isVerifiable: false },
                                         ],
                                     }))}
                                 >
@@ -2187,7 +2201,7 @@ const AdminProducts = () => {
                                             className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900/40 sm:grid-cols-2 md:grid-cols-12 md:items-end"
                                         >
                                             {/* العنوان (Label) */}
-                                            <div className="sm:col-span-1 md:col-span-3">
+                                            <div className="sm:col-span-1 md:col-span-2">
                                                 <Input
                                                     label="العنوان"
                                                     placeholder="مثال: رقم اللاعب"
@@ -2202,7 +2216,7 @@ const AdminProducts = () => {
                                             </div>
 
                                             {/* الاسم البرمجي (Name / Key) */}
-                                            <div className="sm:col-span-1 md:col-span-3">
+                                            <div className="sm:col-span-1 md:col-span-2">
                                                 <Input
                                                     label="الاسم البرمجي"
                                                     placeholder="مثال: player_id"
@@ -2258,6 +2272,21 @@ const AdminProducts = () => {
                                             </label>
 
                                             {/* حذف (Delete) */}
+                                            <label className="inline-flex cursor-pointer items-center gap-2 self-end pb-2.5 text-xs font-medium text-teal-700 dark:text-teal-300 sm:col-span-1 md:col-span-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={item.isVerifiable === true}
+                                                    onChange={(e) => setProductForm((prev) => ({
+                                                        ...prev,
+                                                        dynamicFields: (prev.dynamicFields || []).map((row, rowIndex) => (
+                                                            rowIndex === index ? { ...row, isVerifiable: e.target.checked } : row
+                                                        )),
+                                                    }))}
+                                                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 dark:border-gray-600 dark:bg-gray-800"
+                                                />
+                                                يدعم التحقق (Verifiable)
+                                            </label>
+
                                             <div className="flex items-end pb-0.5 md:col-span-1">
                                                 <Button
                                                     type="button"

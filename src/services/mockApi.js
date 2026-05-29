@@ -171,6 +171,9 @@ const sanitizeUser = (user) => {
     avatar: resolveUserAvatar(safeUser, safeUser.name || safeUser.email || 'COINS User'),
     creditLimit: normalizeCreditLimitValue(safeUser.creditLimit),
     permissions: Array.isArray(safeUser.permissions) ? safeUser.permissions : [],
+    isApiEnabled: Boolean(safeUser.isApiEnabled),
+    whitelistIps: Array.isArray(safeUser.whitelistIps) ? safeUser.whitelistIps : [],
+    webhookUrl: safeUser.webhookUrl || '',
   };
 };
 
@@ -873,6 +876,23 @@ const mockApi = {
     }
   },
 
+  me: {
+    generateApiToken: async () => {
+      await new Promise(resolve => setTimeout(resolve, DELAY));
+      const rawToken = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      return { rawToken };
+    },
+
+    updateApiSettings: async ({ whitelistIps = [], webhookUrl = '' } = {}) => {
+      await new Promise(resolve => setTimeout(resolve, DELAY));
+      return {
+        isApiEnabled: true,
+        whitelistIps: Array.isArray(whitelistIps) ? whitelistIps.map((item) => String(item || '').trim()).filter(Boolean) : [],
+        webhookUrl: String(webhookUrl || '').trim(),
+      };
+    },
+  },
+
   notifications: {
     unreadCount: async () => {
       await new Promise(resolve => setTimeout(resolve, Math.min(DELAY, 200)));
@@ -961,6 +981,18 @@ const mockApi = {
       db.state.products[index] = updatedProduct;
       saveDB('products-storage', db);
       return updatedProduct;
+    },
+
+    verifyField: async (_id, fieldValue) => {
+      await new Promise(resolve => setTimeout(resolve, DELAY));
+      const value = String(fieldValue || '').trim();
+      if (!value) throw new Error('Field value is required');
+
+      return {
+        uid: value,
+        nickName: `Player ${value}`,
+        avatar: null,
+      };
     },
 
     toggleStatus: async (id) => {
@@ -1925,6 +1957,12 @@ const mockApi = {
               throw new Error('Only admin can update credit limit');
             }
             user.creditLimit = normalizeCreditLimitValue(updates.creditLimit);
+          }
+          if (updates?.isApiEnabled !== undefined) {
+            if (!actor || actor.role !== 'admin') {
+              throw new Error('Only admin can update API access');
+            }
+            user.isApiEnabled = Boolean(updates.isApiEnabled);
           }
 
           saveDB('admin-storage', db);

@@ -128,6 +128,7 @@ const AdminUsers = () => {
     updateUserCoins,
     updateUserCurrency,
     updateUserCreditLimit,
+    updateUserProfile,
     deleteUser,
     restoreUser,
     resetUserPassword,
@@ -475,6 +476,24 @@ const AdminUsers = () => {
       await loadUsers({ force: true });
     } catch (error) {
       addToast(error?.message || 'تعذر تحديث حد الدين.', 'error');
+    }
+  };
+
+  const handleApiAccessToggle = async () => {
+    if (!selectedUser) return;
+    if (!canManageUsers) {
+      addToast('ليس لديك صلاحية تعديل بيانات المستخدمين.', 'error');
+      return;
+    }
+
+    const nextValue = !Boolean(selectedUser.isApiEnabled);
+    try {
+      const updated = await updateUserProfile(selectedUser.id, { isApiEnabled: nextValue }, actor);
+      syncSelectedUser(updated || { ...selectedUser, isApiEnabled: nextValue });
+      addToast(nextValue ? 'تم تفعيل استخدام API لهذا الحساب.' : 'تم تعطيل استخدام API لهذا الحساب.', 'success');
+      await loadUsers({ force: true });
+    } catch (error) {
+      addToast(error?.message || 'تعذر تحديث صلاحية استخدام API.', 'error');
     }
   };
 
@@ -1075,6 +1094,30 @@ const AdminUsers = () => {
           )}
 
           <div className="grid gap-3 lg:grid-cols-2">
+              <div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[color:rgb(var(--color-border-rgb)/0.84)] bg-[color:rgb(var(--color-elevated-rgb)/0.5)] p-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-[var(--color-text)]">السماح باستخدام الـ API</p>
+                  <p className="mt-0.5 text-[10px] leading-4 text-[var(--color-text-secondary)]">Enable API Access</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApiAccessToggle}
+                  disabled={!canManageUsers}
+                  aria-pressed={Boolean(selectedUser?.isApiEnabled)}
+                  className={`relative h-6 w-11 shrink-0 rounded-full border transition ${
+                    selectedUser?.isApiEnabled
+                      ? 'border-emerald-400/35 bg-emerald-500'
+                      : 'border-[color:rgb(var(--color-border-rgb)/0.9)] bg-[color:rgb(var(--color-surface-rgb)/0.75)]'
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  <span
+                    className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow transition ${
+                      selectedUser?.isApiEnabled ? 'left-6' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
             <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-[color:rgb(var(--color-border-rgb)/0.84)] p-3.5">
               <p className="text-xs font-semibold text-[var(--color-text)]">المجموعة والعملة</p>
 

@@ -14,6 +14,7 @@ import {
   ACCOUNT_VERIFICATION_ROUTE,
 } from './utils/accountStatus';
 import useAuthStore from './store/useAuthStore';
+import DeveloperApi from './pages/DeveloperApi';
 
 const Layout = lazy(() => import('./components/layout/Layout'));
 const Auth = lazy(() => import('./pages/Auth'));
@@ -179,6 +180,14 @@ const AnimatedAppRoutes = () => {
           element={(
             <ProtectedRoute roles={['customer', 'admin', ...SUPERVISOR_ROLES]}>
               {renderSuspended(<Settings />)}
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/developers/api"
+          element={(
+            <ProtectedRoute roles={['customer', 'admin', ...SUPERVISOR_ROLES]}>
+              <DeveloperApi />
             </ProtectedRoute>
           )}
         />
