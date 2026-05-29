@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Loader, MessageCircle, QrCode, RefreshCw, WifiOff } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader, MessageCircle, QrCode, RefreshCw, Trash2, WifiOff } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { useToast } from '../../components/ui/Toast';
@@ -76,6 +76,7 @@ const WhatsAppSettings = () => {
   const [status, setStatus] = useState(() => normalizeStatus({ state: 'IDLE' }));
   const [isLoading, setIsLoading] = useState(true);
   const [isRestarting, setIsRestarting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState('');
 
   const statusMeta = useMemo(() => getStatusMeta(status), [status]);
@@ -125,6 +126,23 @@ const WhatsAppSettings = () => {
     }
   };
 
+  const handleHardReset = async () => {
+    setIsResetting(true);
+    setError('');
+    try {
+      const nextStatus = await apiClient.whatsapp.reset();
+      setStatus(normalizeStatus(nextStatus));
+      addToast('تم حذف جلسة الواتساب وإعادة التهيئة', 'success');
+      await fetchStatus({ silent: true });
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || 'تعذر حذف جلسة الواتساب';
+      setError(message);
+      addToast(message, 'error');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-6" dir="rtl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -132,15 +150,31 @@ const WhatsAppSettings = () => {
           <h1 className="text-2xl font-black text-[var(--color-text)]">تكامل الواتساب</h1>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">WhatsApp Integration</p>
         </div>
-        <Button
-          type="button"
-          onClick={handleReconnect}
-          disabled={isRestarting}
-          className="inline-flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRestarting ? 'animate-spin' : ''}`} />
-          <span>إعادة تشغيل</span>
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            type="button"
+            onClick={handleReconnect}
+            disabled={isRestarting || isResetting}
+            className="inline-flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRestarting ? 'animate-spin' : ''}`} />
+            <span>إعادة تشغيل</span>
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleHardReset}
+            disabled={isRestarting || isResetting}
+            className="inline-flex items-center gap-2"
+          >
+            {isResetting ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            <span>حذف الجلسة بالكامل</span>
+          </Button>
+        </div>
       </div>
 
       <Card className="admin-premium-panel p-4 sm:p-5">

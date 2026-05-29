@@ -656,6 +656,19 @@ const mockApi = {
         lastError: null,
       };
     },
+    reset: async () => {
+      await new Promise(resolve => setTimeout(resolve, DELAY));
+      return {
+        state: 'INITIALIZING',
+        qrCode: null,
+        hasQrCode: false,
+        isConnected: false,
+        isInitializing: true,
+        adminNumberConfigured: true,
+        dependencyAvailable: true,
+        lastError: null,
+      };
+    },
   },
   
   // --- Auth & Users ---

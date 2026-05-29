@@ -184,6 +184,13 @@ const stripSupplierProductSnapshot = (supplier = {}) => {
   return rest;
 };
 
+const trimStringFields = (payload = {}) => Object.fromEntries(
+  Object.entries(payload).map(([key, value]) => [
+    key,
+    typeof value === 'string' ? value.trim() : value,
+  ])
+);
+
 const AdminSuppliers = () => {
   const { addToast } = useToast();
   const { user } = useAuthStore();
@@ -306,11 +313,12 @@ const AdminSuppliers = () => {
       latencyMs,
       ...editableForm
     } = form;
+    const sanitizedForm = trimStringFields(editableForm);
     const payload = {
-      ...editableForm,
-      customHeaders: parseHeaders(editableForm.customHeadersText),
-      supplierFieldMappings: parseMappings(editableForm.supplierFieldMappingsText),
-      timeoutMs: Number(editableForm.timeoutMs || 8000),
+      ...sanitizedForm,
+      customHeaders: parseHeaders(sanitizedForm.customHeadersText),
+      supplierFieldMappings: parseMappings(sanitizedForm.supplierFieldMappingsText),
+      timeoutMs: Number(sanitizedForm.timeoutMs || 8000),
     };
 
     try {

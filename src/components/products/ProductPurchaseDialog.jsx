@@ -246,7 +246,10 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
   const quantity = Number.parseInt(quantityInput, 10);
   const safeQuantity = Number.isFinite(quantity) ? quantity : 0;
   const totalPrice = normalizeMoneyAmount(Number(unitPrice) * safeQuantity);
-  const balance = normalizeMoneyAmount(user?.coins || 0);
+  const walletBalance = normalizeMoneyAmount(user?.walletBalance ?? user?.coins ?? user?.balance ?? 0);
+  const creditLimit = normalizeMoneyAmount(user?.creditLimit ?? 0);
+  const creditUsed = normalizeMoneyAmount(user?.creditUsed ?? 0);
+  const availableBalance = normalizeMoneyAmount(walletBalance + creditLimit - creditUsed);
   const locale = language === 'en' ? 'en-US' : 'ar-EG';
   const formattedUnitPrice = formatCurrencyAmount(unitPrice, userCurrencyCode, currencies, locale);
   const formattedTotalPrice = formatCurrencyAmount(totalPrice, userCurrencyCode, currencies, locale);
@@ -317,7 +320,7 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
           : `${field.label || key} مطلوب.`;
       }
     }
-    if (Number.isFinite(totalPrice) && totalPrice > balance) return copy.insufficientBalance;
+    if (Number.isFinite(totalPrice) && totalPrice > availableBalance) return copy.insufficientBalance;
     if (!isPurchasable) return copy.unavailable;
     return '';
   };
@@ -410,7 +413,7 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
         const normalizedBalance = normalizeMoneyAmount(nextBalance);
         updateUserSession({ coins: normalizedBalance, walletBalance: normalizedBalance, balance: normalizedBalance });
       } else {
-        const normalizedBalance = normalizeMoneyAmount(balance - totalPrice);
+        const normalizedBalance = normalizeMoneyAmount(walletBalance - totalPrice);
         updateUserSession({ coins: normalizedBalance, walletBalance: normalizedBalance, balance: normalizedBalance });
       }
 

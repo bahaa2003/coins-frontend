@@ -1079,20 +1079,21 @@ const normaliseProvider = (p) => {
  */
 const providerToBE = (fe) => {
   const body = {};
+  const trimValue = (value) => (typeof value === 'string' ? value.trim() : value);
 
   // Name
-  const name = fe.supplierName || fe.name;
+  const name = trimValue(fe.supplierName || fe.name);
   if (name !== undefined) body.name = name;
 
   // Slug
-  const slug = fe.supplierCode || fe.slug;
+  const slug = trimValue(fe.supplierCode || fe.slug);
   if (slug !== undefined) body.slug = slug;
 
   // Base URL
-  if (fe.baseUrl !== undefined) body.baseUrl = fe.baseUrl;
+  if (fe.baseUrl !== undefined) body.baseUrl = trimValue(fe.baseUrl);
 
   // API token: FE may store it in apiKey, bearerToken, or apiToken
-  const token = fe.bearerToken || fe.apiKey || fe.apiToken;
+  const token = trimValue(fe.bearerToken || fe.apiKey || fe.apiToken);
   if (token !== undefined) body.apiToken = token;
 
   // Active status
@@ -1562,6 +1563,10 @@ const realApi = {
     },
     reconnect: async () => {
       const res = await http.post('/admin/whatsapp/reconnect');
+      return unwrap(res);
+    },
+    reset: async () => {
+      const res = await http.post('/admin/whatsapp/reset');
       return unwrap(res);
     },
   },
