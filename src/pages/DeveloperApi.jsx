@@ -23,14 +23,11 @@ import { useToast } from '../components/ui/Toast';
 import useAuthStore from '../store/useAuthStore';
 import apiClient from '../services/client'; 
 
-const BASE_URL = typeof window !== 'undefined' ? window.location.origin : '';
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL
-  || import.meta.env.VITE_API_BASE_URL
-  || `${BASE_URL}/api`
-).replace(/\/+$/, '');
+const apiBaseUrl = typeof window !== 'undefined'
+  ? `${window.location.origin}/api/v1/reseller`
+  : '/api/v1/reseller';
 
-const endpointUrl = (path) => `${API_BASE_URL}${path}`;
+const endpointUrl = (path) => `${apiBaseUrl}${path}`;
 
 const copyText = async (value) => {
   const text = String(value || '');
@@ -60,6 +57,7 @@ const copyText = async (value) => {
 const balanceResponse = `{
   "success": true,
   "data": {
+    "email": "reseller@example.com",
     "balance": 245.75,
     "walletBalance": 245.75,
     "creditLimit": 0,
@@ -103,35 +101,35 @@ const orderSuccessResponse = `{
     "orderId": "66a88f8c4b40f4a9f0d41010",
     "orderNumber": "ORD-12345",
     "status": "PENDING",
-    "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000",
-    "idempotent": false
+    "idempotencyKey": "uuid-here"
   }
 }`;
 
 const orderFailureResponse = `{
   "success": false,
-  "code": "RESELLER_INSUFFICIENT_BALANCE",
-  "message": "Insufficient balance"
+  "error": { "code": 100, "message": "Insufficient balance" }
 }`;
 
 const checkOrdersResponse = `{
   "success": true,
-  "data": {
-    "orderId": "66a88f8c4b40f4a9f0d41010",
-    "orderNumber": "ORD-12345",
-    "productId": "65f1a1c8e9a5b2a1c9d12001",
-    "productName": "PUBG Mobile UC 60",
-    "quantity": 1,
-    "status": "COMPLETED",
-    "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000"
-  }
+  "data": [
+    {
+      "orderId": "66a88f8c4b40f4a9f0d41010",
+      "status": "COMPLETED",
+      "idempotencyKey": "uuid1"
+    }
+  ]
 }`;
 
 const errorCodes = [
-  { code: 400, ar: 'بيانات غير مكتملة أو خاطئة', en: 'Bad Request / Validation Error' },
-  { code: 401, ar: 'توكن الـ API مفقود أو غير صالح', en: 'Unauthorized / Invalid Token' },
-  { code: 403, ar: 'عنوان IP غير مصرح به', en: 'Forbidden IP' },
-  { code: 404, ar: 'الطلب أو المنتج غير موجود', en: 'Not Found' },
+  { code: 100, ar: 'الرصيد غير كاف', en: 'Insufficient balance' },
+  { code: 101, ar: 'المنتج غير متاح أو غير فعال', en: 'Product unavailable/inactive' },
+  { code: 102, ar: 'الكمية خارج النطاق', en: 'Quantity out of range' },
+  { code: 120, ar: 'مفتاح API مفقود', en: 'API Key missing' },
+  { code: 121, ar: 'مفتاح API غير صالح', en: 'Invalid API Key' },
+  { code: 122, ar: 'API غير مسموح أو الحساب موقوف', en: 'API not allowed / Suspended' },
+  { code: 123, ar: 'خطأ في التحقق من البيانات', en: 'Validation Error' },
+  { code: 500, ar: 'خطأ داخلي في الخادم', en: 'Internal Server Error' },
 ];
 
 const parameters = [
@@ -324,62 +322,129 @@ const DeveloperApi = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   const docsPlainText = useMemo(
-    () => `دليل API للموزعين - B2B Reseller API
+    () => `========================================
+B2B Reseller API Documentation
 ========================================
 
-1) الروابط
+1) Base URLs
 ----------------------
 API Base URL:
-${API_BASE_URL}/v1/reseller
+${apiBaseUrl}
 
-ملاحظة:
-كل المسارات التالية تضاف إلى API Base URL. مثال:
-${endpointUrl('/v1/reseller/balance')}
+Note: All the following endpoints must be appended to the API Base URL.
 
-2) التوثيق Authentication
+2) Authentication
 -------------------------
-يجب إرسال توكن الـ API في HTTP Headers مع كل طلب:
-
+You must send your API Token in the HTTP Headers with every request:
 x-api-key: YOUR_TOKEN
 
-3) Check Balance - الاستعلام عن الرصيد
+3) Profile & Balance
 -------------------------------
-GET /v1/reseller/balance
-Full URL: ${endpointUrl('/v1/reseller/balance')}
+GET /profile
+Full URL: ${apiBaseUrl}/profile
+
+Description: Returns reseller account data, balance, and credit limits.
 
 Success JSON Response:
-${balanceResponse}
+{
+  "success": true,
+  "data": {
+    "email": "reseller@example.com",
+    "balance": 245.75,
+    "walletBalance": 245.75,
+    "creditLimit": 0,
+    "creditUsed": 0,
+    "currency": "USD"
+  }
+}
 
-4) Products - جلب المنتجات
+4) Products
 -----------------------------------
-GET /v1/reseller/products
-Full URL: ${endpointUrl('/v1/reseller/products')}
+GET /products
+Full URL: ${apiBaseUrl}/products
+
+Description: Returns active products and required dynamic fields.
 
 Success JSON Response:
-${productsResponse}
+{
+  "success": true,
+  "data": [
+    {
+      "id": "65f1a1c8e9a5b2a1c9d12001",
+      "name": "PUBG Mobile UC 60",
+      "price": 1.5,
+      "minQty": 1,
+      "maxQty": 50,
+      "currency": "USD",
+      "fields": [
+        { "key": "playerId", "label": "Player ID", "required": true, "type": "text" }
+      ]
+    }
+  ]
+}
 
-5) Place Order - إنشاء طلب
+5) Place Order
 --------------------------
-POST /v1/reseller/orders
-Full URL: ${endpointUrl('/v1/reseller/orders')}
+POST /orders
+Full URL: ${apiBaseUrl}/orders
 
 Headers:
 x-api-key: YOUR_TOKEN
 Content-Type: application/json
 
-Request Body Example:
-${orderRequest}
+Request Body Parameters:
+- productId (String, Required)
+- quantity (Number, Required)
+- idempotencyKey (String/UUID, Required): Prevents duplicate orders.
+- [dynamic_fields]: Send required fields (e.g., playerId).
 
 Success JSON Response:
-${orderSuccessResponse}
+{
+  "success": true,
+  "data": {
+    "orderId": "66a88f8c4b40f4a9f0d41010",
+    "orderNumber": "ORD-12345",
+    "status": "PENDING",
+    "idempotencyKey": "uuid-here"
+  }
+}
 
-6) Check Orders - متابعة الطلبات
+6) Check Orders (Batch Support)
 --------------------------------
-GET /v1/reseller/orders/:idempotencyKey
-Full URL: ${endpointUrl('/v1/reseller/orders/550e8400-e29b-41d4-a716-446655440000')}
+GET /orders?keys=uuid1,uuid2
+Full URL: ${apiBaseUrl}/orders?keys=uuid1,uuid2
+
+Description: Check the status of one or multiple orders simultaneously.
 
 Success JSON Response:
-${checkOrdersResponse}
+{
+  "success": true,
+  "data": [
+    {
+      "orderId": "66a88f8c4b40f4a9f0d41010",
+      "status": "COMPLETED",
+      "idempotencyKey": "uuid1"
+    }
+  ]
+}
+
+7) Error Handling & Codes
+------------------------
+Failure Response Format:
+{
+  "success": false,
+  "error": { "code": 100, "message": "Insufficient balance" }
+}
+
+Error Codes:
+100: Insufficient balance
+101: Product unavailable/inactive
+102: Quantity out of range
+120: API Key missing
+121: Invalid API Key
+122: API not allowed / Suspended
+123: Validation Error
+500: Internal Server Error
 `,
     []
   );
@@ -458,7 +523,7 @@ ${checkOrdersResponse}
                   <Database className="h-4 w-4 text-[var(--color-primary)]" />
                   API_BASE_URL
                 </div>
-                <CodeBlock>{API_BASE_URL}/v1/reseller</CodeBlock>
+                <CodeBlock>{apiBaseUrl}</CodeBlock>
               </div>
             </Section>
 
@@ -484,9 +549,9 @@ ${checkOrdersResponse}
           <div className="space-y-4">
             <EndpointCard
               method="GET"
-              path="/v1/reseller/balance"
-              title="Balance - الاستعلام عن الرصيد"
-              description="يعيد الرصيد المتاح، الحد الائتماني، وعملة الحساب الخاصة بالموزع."
+              path="/profile"
+              title="Profile & Balance - الاستعلام عن الرصيد"
+              description="يعيد بيانات حساب الموزع، الرصيد المتاح، الحد الائتماني، وعملة الحساب."
             >
               <div>
                 <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--color-text)]">
@@ -499,7 +564,7 @@ ${checkOrdersResponse}
 
             <EndpointCard
               method="GET"
-              path="/v1/reseller/products"
+              path="/products"
               title="Products - جلب المنتجات والأسعار"
               description="يعيد المنتجات المتاحة للـ API مع أسعار الموزع النهائية والحقول الديناميكية المطلوبة."
             >
@@ -514,7 +579,7 @@ ${checkOrdersResponse}
 
             <EndpointCard
               method="POST"
-              path="/v1/reseller/orders"
+              path="/orders"
               title="Place Order - إنشاء طلب شحن"
               description="ينشئ طلبا جديدا. إرسال idempotencyKey إلزامي لمنع تكرار الطلبات والخصم المزدوج."
             >
@@ -549,9 +614,9 @@ ${checkOrdersResponse}
 
             <EndpointCard
               method="GET"
-              path="/v1/reseller/orders/:idempotencyKey"
+              path="/orders?keys=uuid1,uuid2"
               title="Check Orders - متابعة حالة الطلب"
-              description="مرر الـ idempotencyKey كجزء من الرابط للتحقق من حالة الطلب الخاص بك."
+              description="تحقق من حالة طلب واحد أو عدة طلبات في نفس الوقت باستخدام مفاتيح idempotencyKey."
             >
               <div>
                 <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--color-text)]">
