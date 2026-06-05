@@ -340,8 +340,8 @@ x-api-key: YOUR_TOKEN
 
 3) Profile & Balance
 -------------------------------
-GET /profile
-Full URL: ${apiBaseUrl}/profile
+GET /balance
+Full URL: ${apiBaseUrl}/balance
 
 Description: Returns reseller account data, balance, and credit limits.
 
@@ -549,7 +549,7 @@ Error Codes:
           <div className="space-y-4">
             <EndpointCard
               method="GET"
-              path="/profile"
+              path="/balance"
               title="Profile & Balance - الاستعلام عن الرصيد"
               description="يعيد بيانات حساب الموزع، الرصيد المتاح، الحد الائتماني، وعملة الحساب."
             >
