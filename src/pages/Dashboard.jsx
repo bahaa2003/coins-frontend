@@ -258,7 +258,7 @@ const Dashboard = () => {
                       decoding="async"
                     />
                     {isUnavailable ? (
-                      <span className="absolute inset-0 z-20 bg-black/24 px-1.5 pt-2">
+                      <span className="absolute inset-0 z-20 bg-black/24">
                         <UnavailableLockOverlay label={unavailableLabel} size="sm" />
                       </span>
                     ) : null}

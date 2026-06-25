@@ -77,6 +77,15 @@ export const getStorefrontLanguage = (i18n) =>
 
 export const sanitizeStorefrontQuery = (value) => normalizeSearchToken(value);
 
+const shouldKeepUnavailableProductVisible = (product = {}) => {
+  const status = String(product?.status || '').trim().toLowerCase();
+  const productStatus = String(product?.productStatus || '').trim().toLowerCase();
+
+  return status === 'inactive'
+    || product?.isActive === false
+    || productStatus === 'unavailable';
+};
+
 export const getCurrencySymbol = (currencyCode = 'USD') => {
   const currencySymbolMap = {
     USD: '$',
@@ -176,7 +185,9 @@ export const createStorefrontProducts = (products, { language = 'ar', userGroup 
   ].join(' ')),
   storefrontPrice: calculateProductPrice(product, userGroup, userGroupPercentage),
   storefrontStatus: getProductStatus(product, language),
-})).filter((product) => product.storefrontStatus.isVisible)
+})).filter((product) => (
+  product.storefrontStatus.isVisible || shouldKeepUnavailableProductVisible(product)
+))
   .sort((left, right) => compareStorefrontProducts(left, right, language));
 
 export const filterStorefrontProducts = (products, { searchTerm = '', activeCategory = 'all', language = 'ar' } = {}) => {

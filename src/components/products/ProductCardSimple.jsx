@@ -58,7 +58,7 @@ const ProductCardSimple = React.memo(({
           </div>
         )}
         {isUnavailable && (
-          <div className="absolute inset-0 z-20 bg-black/24 px-2 pt-2">
+          <div className="absolute inset-0 z-20 bg-black/24">
             <UnavailableLockOverlay label={resolvedUnavailableLabel} size="md" />
           </div>
         )}

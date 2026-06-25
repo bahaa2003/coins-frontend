@@ -6,22 +6,22 @@ const sizeClasses = {
   xs: {
     panel: 'rounded-[0.9rem]',
     plaque: 'top-1 px-1.5 py-0.5 text-[8px] rounded-[0.45rem]',
-    image: 'left-1/2 top-[58%] h-[165%] w-[165%] -translate-x-1/2 -translate-y-1/2',
+    image: 'inset-0 h-full w-full scale-[1.55] object-cover object-[50%_68%]',
   },
   sm: {
     panel: 'rounded-[0.85rem]',
     plaque: 'top-2 px-3 py-1 text-[10px] rounded-[0.7rem]',
-    image: 'left-1/2 top-[58%] h-[180%] w-[180%] -translate-x-1/2 -translate-y-1/2',
+    image: 'inset-0 h-full w-full scale-[1.55] object-cover object-[50%_68%]',
   },
   md: {
     panel: 'rounded-[1rem]',
     plaque: 'top-2.5 px-4 py-1.5 text-xs sm:text-sm rounded-[0.8rem]',
-    image: 'left-1/2 top-[58%] h-[190%] w-[190%] -translate-x-1/2 -translate-y-1/2',
+    image: 'inset-0 h-full w-full scale-[1.55] object-cover object-[50%_68%]',
   },
   lg: {
     panel: 'rounded-[1.4rem]',
     plaque: 'top-3 px-5 py-2 text-sm sm:text-base rounded-[0.95rem]',
-    image: 'left-1/2 top-[58%] h-[200%] w-[200%] -translate-x-1/2 -translate-y-1/2',
+    image: 'inset-0 h-full w-full scale-[1.55] object-cover object-[50%_68%]',
   },
 };
 
@@ -51,7 +51,7 @@ const UnavailableLockOverlay = ({ label = 'غير متوفر', size = 'md', clas
         alt=""
         draggable="false"
         className={cn(
-          'absolute z-50 max-w-none object-contain object-center drop-shadow-[0_18px_22px_rgb(0_0_0/0.72)]',
+          'absolute z-50 max-w-none drop-shadow-[0_18px_22px_rgb(0_0_0/0.72)]',
           styles.image
         )}
       />

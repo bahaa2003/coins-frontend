@@ -179,7 +179,7 @@ const ProductSearchBar = ({
                         className={cn('h-full w-full object-cover', isUnavailable && 'brightness-[0.48] grayscale-[0.18]')}
                       />
                       {isUnavailable ? (
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-yellow-300">
+                        <span className="absolute inset-0 bg-black/20 text-yellow-300">
                           <UnavailableLockOverlay label={unavailableLabel} size="xs" />
                         </span>
                       ) : null}

@@ -1859,20 +1859,32 @@ const realApi = {
      * Both return products array in `data`.
      */
     list: async () => {
+      const includeUnavailableParams = {
+        includeUnavailable: true,
+        includeInactive: true,
+        showUnavailable: true,
+        includeHidden: true,
+      };
       const requestPlan = isAdmin()
-        ? ['/admin/products']
+        ? [
+          ['/admin/products', { params: includeUnavailableParams }],
+          ['/admin/products'],
+        ]
         : [
           // Documented endpoint for customers.
+          ['/products', { params: includeUnavailableParams }],
           '/products',
           // Fallback for deployments that expose customer-scoped products.
+          ['/me/products', { params: includeUnavailableParams }],
           '/me/products',
         ];
 
       let fallback = null;
 
-      for (const endpoint of requestPlan) {
+      for (const entry of requestPlan) {
         try {
-          const res = await http.get(endpoint);
+          const [endpoint, config] = Array.isArray(entry) ? entry : [entry, undefined];
+          const res = await http.get(endpoint, config);
           const data = unwrap(res);
           const products = Array.isArray(data) ? data : (data?.products || []);
           const normalised = (Array.isArray(products) ? products : []).map(normaliseProduct);
@@ -2786,7 +2798,18 @@ const realApi = {
      * Returns { categories, products } with ALL pricing fields stripped.
      */
     fetch: async () => {
-      const res = await http.get('/public/catalog');
+      const includeUnavailableParams = {
+        includeUnavailable: true,
+        includeInactive: true,
+        showUnavailable: true,
+        includeHidden: true,
+      };
+      let res;
+      try {
+        res = await http.get('/public/catalog', { params: includeUnavailableParams });
+      } catch {
+        res = await http.get('/public/catalog');
+      }
       const data = res.data?.data || {};
       const rawCategories = Array.isArray(data.categories) ? data.categories : [];
       const rawProducts = Array.isArray(data.products) ? data.products : [];

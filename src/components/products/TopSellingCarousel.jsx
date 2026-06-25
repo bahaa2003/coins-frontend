@@ -95,7 +95,7 @@ const TopSellingCarousel = ({
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,11,11,0.08)_0%,rgba(11,11,11,0.22)_38%,rgba(11,11,11,0.86)_100%)]" />
                 {isUnavailable && (
-                  <div className="absolute inset-0 z-20 bg-black/20 px-3 pt-3">
+                  <div className="absolute inset-0 z-20 bg-black/20">
                     <UnavailableLockOverlay label={resolvedUnavailableLabel} size="lg" />
                   </div>
                 )}
