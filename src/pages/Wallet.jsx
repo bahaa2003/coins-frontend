@@ -583,6 +583,12 @@ const Wallet = () => {
     () => `${formatWalletNumber(walletCoinsValue, false, { maximumFractionDigits: 3 })} ${userCurrency}`,
     [userCurrency, walletCoinsValue]
   );
+  const debtLimitValue = normalizeMoneyAmount(user?.creditLimit ?? 0);
+  const debtLimitLabel = isRTL ? 'حد الدين' : 'Debt limit';
+  const debtLimitDisplay = useMemo(
+    () => `${formatWalletNumber(debtLimitValue, false, { maximumFractionDigits: 3 })} ${userCurrency}`,
+    [debtLimitValue, userCurrency]
+  );
 
   return (
     <div
@@ -610,6 +616,10 @@ const Wallet = () => {
                 <Plus className="h-3.5 w-3.5" />
                 <span>{isRTL ? 'أضف رصيد' : t('wallet.addBalance', { defaultValue: 'Add Balance' })}</span>
               </button>
+            </div>
+            <div className="mt-2 inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-[11px] border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[color:rgb(var(--color-card-rgb)/0.54)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-text-secondary)]">
+              <span>{debtLimitLabel}</span>
+              <strong className="text-[var(--color-primary)]" dir="ltr">{debtLimitDisplay}</strong>
             </div>
           </div>
         </section>

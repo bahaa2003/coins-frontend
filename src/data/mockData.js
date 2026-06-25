@@ -1,6 +1,6 @@
-import chatAppsImage from '../assets/chatApps.webp';
-import gamesChargingImage from '../assets/gamesCharging.webp';
-import buyCardsImage from '../assets/buyCards.webp';
+import chatAppsImage from '../assets/سلايد 1.jpg';
+import gamesChargingImage from '../assets/سلايد 2.jpg';
+import buyCardsImage from '../assets/سلايد 3.jpg';
 
 export const mockUsers = [
   {

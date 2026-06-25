@@ -2,10 +2,11 @@ import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'r
 import { createPortal } from 'react-dom';
 import { SearchX } from 'lucide-react';
 import { resolveImageUrl } from '../../utils/imageUrl';
-import coinsImage from '../../assets/عملات.webp';
+import coinsImage from '../../assets/logo.webp';
 import SearchBar from '../ui/SearchBar';
 import { cn } from '../ui/Button';
 import { filterStorefrontProducts, sanitizeStorefrontQuery } from '../../utils/storefront';
+import UnavailableLockOverlay from './UnavailableLockOverlay';
 
 const ProductSearchBar = ({
   products = [],
@@ -147,33 +148,55 @@ const ProductSearchBar = ({
         >
           {results.length > 0 ? (
             <div className="max-h-[18rem] overflow-y-auto py-1.5">
-              {results.map((product) => (
-                <button
-                  key={product.id}
-                  type="button"
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    handleSelect(product);
-                  }}
-                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-start transition-colors hover:bg-[color:rgb(var(--color-primary-rgb)/0.08)]"
-                >
-                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-[0.95rem] border border-[color:rgb(var(--color-border-rgb)/0.84)] bg-[color:rgb(var(--color-elevated-rgb)/0.88)]">
-                    <img
-                      src={product.image ? resolveImageUrl(product.image) : coinsImage}
-                      alt={product.displayName}
-                      loading="lazy"
-                      decoding="async"
-                      sizes="44px"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-[var(--color-text)] sm:text-[13px]">
-                      {product.displayName}
-                    </p>
-                  </div>
-                </button>
-              ))}
+              {results.map((product) => {
+                const isUnavailable = product.storefrontStatus?.isPurchasable === false;
+                const unavailableLabel = product.storefrontStatus?.badgeLabel || (isArabic ? 'غير متاح' : 'Unavailable');
+
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      if (!isUnavailable) handleSelect(product);
+                    }}
+                    disabled={isUnavailable}
+                    className={cn(
+                      'relative isolate flex w-full items-center gap-2.5 px-2.5 py-2 text-start transition-colors hover:bg-[color:rgb(var(--color-primary-rgb)/0.08)]',
+                      isUnavailable && 'cursor-not-allowed'
+                    )}
+                  >
+                    {isUnavailable ? (
+                      <span className="pointer-events-none absolute inset-0 z-10 bg-black/30" aria-hidden="true" />
+                    ) : null}
+                    <div className="relative z-20 h-11 w-11 shrink-0 overflow-hidden rounded-[0.95rem] border border-[color:rgb(var(--color-border-rgb)/0.84)] bg-[color:rgb(var(--color-elevated-rgb)/0.88)]">
+                      <img
+                        src={product.image ? resolveImageUrl(product.image) : coinsImage}
+                        alt={product.displayName}
+                        loading="lazy"
+                        decoding="async"
+                        sizes="44px"
+                        className={cn('h-full w-full object-cover', isUnavailable && 'brightness-[0.48] grayscale-[0.18]')}
+                      />
+                      {isUnavailable ? (
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-yellow-300">
+                          <UnavailableLockOverlay label={unavailableLabel} size="xs" />
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="relative z-20 min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-[var(--color-text)] sm:text-[13px]">
+                        {product.displayName}
+                      </p>
+                      {isUnavailable ? (
+                        <span className="mt-1 inline-flex rounded-full border border-red-400/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-black text-red-500 dark:text-red-300">
+                          {unavailableLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="flex items-center gap-2.5 px-3 py-3 text-xs text-[var(--color-text-secondary)] sm:text-sm">

@@ -60,7 +60,8 @@ const SummaryCard = ({ icon: Icon, label, value, alert = false }) => (
 
 /* ─── Pagination Bar ──────────────────────────────────────────────────────── */
 
-const ROWS_OPTIONS = [20, 50, 100, 500];
+const DEFAULT_ADMIN_ORDERS_LIMIT = 100;
+const ROWS_OPTIONS = [20, 50, DEFAULT_ADMIN_ORDERS_LIMIT, 500];
 
 const buildPageNumbers = (currentPage, totalPages) => {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -210,7 +211,7 @@ const AdminOrders = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(DEFAULT_ADMIN_ORDERS_LIMIT);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [appliedStartDate, setAppliedStartDate] = useState('');
@@ -239,11 +240,22 @@ const AdminOrders = () => {
   // ── Core page loader (stable, receives explicit params) ───────────────
   const loadPage = useCallback(async ({ pg, lim, search, startDate, endDate }) => {
     setIsLoading(true);
+    const trimmedSearch = String(search || '').trim();
+    const userMatches = (useAdminStore.getState?.().users || [])
+      .filter((entry) => {
+        const identifiers = [
+          entry?.id,
+          entry?._id,
+          entry?.userId,
+        ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+        return identifiers.includes(trimmedSearch.toLowerCase());
+      });
     await Promise.allSettled([
       storeActionsRef.current.loadAdminOrders({
         page: pg,
         limit: lim,
-        search: search || undefined,
+        search: userMatches.length === 1 ? undefined : (trimmedSearch || undefined),
+        userId: userMatches.length === 1 ? (userMatches[0].id || userMatches[0]._id || userMatches[0].userId) : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
@@ -322,19 +334,16 @@ const AdminOrders = () => {
     [adminOrders, users, products, isArabic]
   );
 
-  // NOTE: Search is handled server-side via the debounced `serverSearchTerm` → `loadAdminOrders`.
-  // Do NOT pass `searchTerm` here — that would re-filter the already-correct server response,
-  // causing results to disappear on every page except page 1.
   const filteredOrders = useMemo(
     () => filterOrders(enrichedOrders, {
-      searchTerm: '',        // ← intentionally blank: server already filtered by search
+      searchTerm: serverSearchTerm,
       statusFilter,
       typeFilter,
       dateFilter,
       sortOrder,
       providerFilter,
     }),
-    [dateFilter, enrichedOrders, sortOrder, statusFilter, typeFilter, providerFilter]
+    [dateFilter, enrichedOrders, serverSearchTerm, sortOrder, statusFilter, typeFilter, providerFilter]
   );
 
   const summary = useMemo(() => summarizeOrders(filteredOrders), [filteredOrders]);
@@ -525,8 +534,8 @@ const AdminOrders = () => {
         panelClassName="admin-premium-panel"
         compact
         searchPlaceholder={isArabic
-          ? 'ابحث برقم الطلب، معرف الطلب، أو معرف اللاعب...'
-          : 'Search by order number, order ID, or player ID...'}
+          ? 'ابحث برقم الطلب، معرف الطلب، معرف اللاعب، أو ID المستخدم...'
+          : 'Search by order number, order ID, player ID, or user ID...'}
         helperText={null}
       />
 

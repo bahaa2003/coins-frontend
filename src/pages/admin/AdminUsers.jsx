@@ -75,6 +75,17 @@ const toFiniteNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizeUserSearchText = (value) => String(value || '')
+  .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+  .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+  .trim()
+  .toLowerCase();
+
+const getSearchTokens = (value) => normalizeUserSearchText(value)
+  .split(/[\s,;|/\\]+/)
+  .map((token) => token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
+  .filter(Boolean);
+
 const buildWalletPreview = (entry, wallet = null) => {
   if (!entry && !wallet) return null;
 
@@ -214,12 +225,18 @@ const AdminUsers = () => {
     [deletedCustomerUsers]
   );
 
+  const walletByUserId = useMemo(
+    () => new Map((wallets || []).map((entry) => [String(entry?.userId || entry?.id || '').trim(), entry])),
+    [wallets]
+  );
+
   const filteredUsers = useMemo(() => {
-    const normalizedSearch = String(search || '').trim().toLowerCase();
+    const searchTokens = getSearchTokens(search);
     const sourceUsers = filter === 'deleted' ? deletedCustomerUsers : customerUsers;
 
     return [...sourceUsers]
       .filter((entry) => {
+        const walletPreview = buildWalletPreview(entry, walletByUserId.get(String(entry?.id || '').trim()) || null);
         const normalizedStatus = normalizeAccountStatus(entry?.status);
         const isDeletedEntry = Boolean(entry?.deletedAt) || Boolean(entry?.isDeleted) || normalizedStatus === 'deleted';
         const matchesFilter = filter === 'all'
@@ -228,24 +245,43 @@ const AdminUsers = () => {
             ? isDeletedEntry
             : normalizedStatus === filter;
         const haystack = [
+          entry?.id,
+          entry?._id,
+          entry?.userId,
           entry?.name,
+          entry?.fullName,
           entry?.email,
           entry?.username,
-          entry?.id,
-        ].join(' ').toLowerCase();
-        const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch);
+          entry?.phone,
+          entry?.phoneNumber,
+          entry?.country,
+          entry?.countryCode,
+          entry?.currency,
+          entry?.role,
+          entry?.group,
+          entry?.groupId,
+          entry?.status,
+          normalizedStatus,
+          getAccountStatusLabel(entry?.status, isArabic),
+          getSignupMethodLabel(entry?.signupMethod || entry?.authProvider, isArabic),
+          entry?.coins,
+          entry?.walletBalance,
+          entry?.balance,
+          entry?.creditLimit,
+          walletPreview?.userId,
+          walletPreview?.currency,
+          walletPreview?.walletBalance,
+          walletPreview?.transactionsCount,
+        ].join(' ');
+        const normalizedHaystack = normalizeUserSearchText(haystack);
+        const matchesSearch = !searchTokens.length || searchTokens.every((token) => normalizedHaystack.includes(token));
         return matchesFilter && matchesSearch;
       })
       .sort((left, right) => {
         return Number(right?.walletBalance ?? right?.coins ?? right?.balance ?? 0)
           - Number(left?.walletBalance ?? left?.coins ?? left?.balance ?? 0);
       });
-  }, [customerUsers, deletedCustomerUsers, filter, search]);
-
-  const walletByUserId = useMemo(
-    () => new Map((wallets || []).map((entry) => [String(entry?.userId || entry?.id || '').trim(), entry])),
-    [wallets]
-  );
+  }, [customerUsers, deletedCustomerUsers, filter, isArabic, search, walletByUserId]);
 
   const openDetails = async (entry) => {
     setSelectedUser(entry);

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Edit3, ImagePlus, Plus, Trash2 } from 'lucide-react';
 import { resolveImageUrl } from '../../utils/imageUrl';
-import coinsImage from '../../assets/عملات.webp';
+import coinsImage from '../../assets/logo.webp';
 import Button, { cn } from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
@@ -26,7 +26,19 @@ const ProductModal = ({ isOpen, onClose, product, paymentMethods, onSave }) => {
       : paymentMethods.map((method) => method.id);
 
     setName(product?.name || '');
-    setTargetAccountId(product?.targetAccountId || product?.receivingAccountId || product?.receiverAccountId || '');
+    setTargetAccountId(
+      product?.targetAccountId
+      || product?.receivingAccountId
+      || product?.receiverAccountId
+      || product?.recipientAccountId
+      || product?.targetRecipientId
+      || product?.receivingAccount
+      || product?.targetAccount
+      || product?.destinationAccountId
+      || product?.accountId
+      || product?.accountNumber
+      || ''
+    );
     setUnitPrice(product?.unitPrice ? String(product.unitPrice) : '');
     setImage(product?.image ? { preview: product.image, fileName: 'صورة التطبيق' } : null);
     setPaymentMethodIds(selectedIds);
@@ -72,7 +84,7 @@ const ProductModal = ({ isOpen, onClose, product, paymentMethods, onSave }) => {
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="اسم التطبيق" value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: PUBG Mobile" />
-          <Input label="ايدي الحساب المستلم" value={targetAccountId} onChange={(event) => setTargetAccountId(event.target.value)} placeholder="ادخل ايدي الحساب" />
+          <Input label="آيدي الحساب المستلم" value={targetAccountId} onChange={(event) => setTargetAccountId(event.target.value)} placeholder="ادخل آيدي الحساب" />
           <Input label="سعر الوحدة" type="number" min="0" step="0.01" value={unitPrice} onChange={(event) => setUnitPrice(event.target.value)} placeholder="1.35" />
         </div>
 

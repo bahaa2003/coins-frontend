@@ -12,7 +12,7 @@
 
 import axios from 'axios';
 import { devLogger } from '../utils/devLogger';
-import { normalizePaymentGroups } from '../utils/paymentSettings';
+import { isSiteWalletPaymentMethod, normalizePaymentGroups } from '../utils/paymentSettings';
 import {
   resolveWalletTransactionExecutionCurrency,
   resolveWalletTransactionOriginalCurrency,
@@ -698,8 +698,15 @@ const normaliseGroup = (g) => {
 const normaliseProduct = (p) => {
   if (!p) return null;
   const id = p._id || p.id;
-  const isActive = p.isActive !== false;
-  const productStatus = String(p.productStatus || '').trim();
+  const productStatus = String(p.productStatus || '').trim().toLowerCase();
+  const rawStatus = String(p.status || '').trim().toLowerCase();
+  const hasExplicitIsActive = p.isActive !== undefined && p.isActive !== null;
+  const isActive = hasExplicitIsActive ? p.isActive !== false : productStatus !== 'unavailable';
+  const normalizedStatus = ['active', 'inactive'].includes(rawStatus)
+    ? rawStatus
+    : (isActive ? 'active' : 'inactive');
+  const isStopped = normalizedStatus === 'inactive';
+  const resolvedProductStatus = productStatus === 'unavailable' || isStopped ? 'unavailable' : 'available';
 
   // Resolve populated provider reference
   const providerId = typeof p.provider === 'object' ? (p.provider?._id || p.provider?.id) : p.provider;
@@ -774,9 +781,12 @@ const normaliseProduct = (p) => {
     id,
     _id: undefined,
     // Status mapping
-    status: String(p.status || '').trim().toLowerCase() || (isActive ? 'active' : 'inactive'),
-    productStatus: productStatus || (isActive ? 'available' : 'unavailable'),
-    isVisibleInStore: p.isVisibleInStore !== undefined ? Boolean(p.isVisibleInStore) : isActive,
+    status: normalizedStatus,
+    productStatus: resolvedProductStatus,
+    isVisibleInStore: true,
+    showWhenUnavailable: p.showWhenUnavailable !== undefined
+      ? Boolean(p.showWhenUnavailable)
+      : resolvedProductStatus === 'unavailable',
     // Pricing
     basePriceCoins: resolvedBasePrice,
     basePrice: p.basePrice ?? resolvedBasePrice,
@@ -1130,8 +1140,8 @@ const normaliseTargetApp = (app = {}) => {
     id,
     _id: undefined,
     name: String(app.name || '').trim(),
-    targetAccountId: String(app.targetAccountId || app.receivingAccountId || app.receiverAccountId || '').trim(),
-    receivingAccountId: String(app.receivingAccountId || app.targetAccountId || app.receiverAccountId || '').trim(),
+    targetAccountId: String(app.targetAccountId || app.receivingAccountId || app.receiverAccountId || app.recipientAccountId || app.targetRecipientId || app.receivingAccount || app.targetAccount || app.destinationAccountId || app.accountId || app.accountNumber || '').trim(),
+    receivingAccountId: String(app.receivingAccountId || app.targetAccountId || app.receiverAccountId || app.recipientAccountId || app.targetRecipientId || app.receivingAccount || app.targetAccount || app.destinationAccountId || app.accountId || app.accountNumber || '').trim(),
     unitPrice: Number(app.unitPrice || 0),
     image: resolveImageUrl(app.image),
     imagePath: app.image || '',
@@ -1198,8 +1208,8 @@ const normaliseTargetOrder = (order = {}) => {
     app,
     appNameSnapshot: order.appNameSnapshot || app?.name || order.productName || '',
     productName: order.appNameSnapshot || app?.name || order.productName || '',
-    targetAccountIdSnapshot: order.targetAccountIdSnapshot || order.targetAccountId || order.receivingAccountId || app?.targetAccountId || '',
-    targetAccountId: order.targetAccountIdSnapshot || order.targetAccountId || order.receivingAccountId || app?.targetAccountId || '',
+    targetAccountIdSnapshot: order.targetAccountIdSnapshot || order.targetAccountId || order.receivingAccountId || order.recipientAccountId || order.targetRecipientId || order.receivingAccount || order.targetAccount || order.destinationAccountId || app?.targetAccountId || '',
+    targetAccountId: order.targetAccountIdSnapshot || order.targetAccountId || order.receivingAccountId || order.recipientAccountId || order.targetRecipientId || order.receivingAccount || order.targetAccount || order.destinationAccountId || app?.targetAccountId || '',
     coinAmount,
     quantity: coinAmount,
     unitPriceSnapshot: unitPrice,
@@ -1255,14 +1265,17 @@ const buildTargetAppFormData = (payload = {}, { partial = false } = {}) => {
 
 const buildTargetOrderFormData = (payload = {}) => {
   const formData = new FormData();
+  const usesSiteWallet = payload.isSiteWalletPayment || isSiteWalletPaymentMethod(payload.paymentMethodId || payload.paymentMethod || payload.paymentMethodName);
   formData.append('appId', String(payload.appId || payload.productId || ''));
   appendIfPresent(formData, 'targetAccountIdSnapshot', String(payload.targetAccountIdSnapshot || payload.targetAccountId || '').trim());
   formData.append('coinAmount', String(payload.coinAmount ?? payload.quantity ?? ''));
   formData.append('senderId', String(payload.senderId || payload.transferFromId || payload.playerId || '').trim());
-  formData.append('transferNumber', String(payload.transferNumber || payload.paymentAccount || '').trim());
-  formData.append('transactionNumber', String(payload.transactionNumber || payload.transactionId || payload.paymentReference || '').trim());
+  formData.append('transferNumber', String(payload.transferNumber || payload.paymentAccount || (usesSiteWallet ? 'محفظة الموقع' : '')).trim());
+  formData.append('transactionNumber', String(payload.transactionNumber || payload.transactionId || payload.paymentReference || (usesSiteWallet ? `site-wallet-${Date.now()}` : '')).trim());
+  formData.append('paymentReference', String(payload.paymentReference || payload.transactionNumber || payload.transactionId || (usesSiteWallet ? 'site-wallet' : '')).trim());
   formData.append('paymentMethod', String(payload.paymentMethod || payload.paymentMethodName || '').trim());
   appendIfPresent(formData, 'paymentMethodId', String(payload.paymentMethodId || '').trim());
+  if (usesSiteWallet) formData.append('transferImageUrl', 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==');
   appendIfPresent(formData, 'userName', String(payload.userName || '').trim());
   appendIfPresent(formData, 'userEmail', String(payload.userEmail || '').trim());
   const file = payload.screenshotProof || payload.proofImage || payload.receipt || null;
@@ -1503,10 +1516,24 @@ const productToBE = (fe) => {
   return body;
 };
 
-const normaliseProductMutationResponse = (response) => normaliseProduct(
-  unwrap(response)?.product
-  || unwrap(response)
-);
+const normaliseProductMutationResponse = (response) => {
+  const payload = unwrap(response);
+  const candidate = payload?.product || payload;
+
+  if (!candidate || typeof candidate !== 'object') return null;
+
+  const hasProductShape = Boolean(
+    candidate._id
+    || candidate.id
+    || candidate.name !== undefined
+    || candidate.nameAr !== undefined
+    || candidate.isActive !== undefined
+    || candidate.status !== undefined
+    || candidate.productStatus !== undefined
+  );
+
+  return hasProductShape ? normaliseProduct(candidate) : null;
+};
 
 const runProductMutationPlan = async (plan, fallbackMessage = 'Unable to save product.') => {
   let lastError = null;
@@ -2773,15 +2800,55 @@ const realApi = {
   // ── Orders ───────────────────────────────────────────────────────────────
   orders: {
     /**
-     * GET /admin/orders (admin) or GET /me/orders (customer).
+     * GET /admin/orders (admin all), GET /admin/orders?userId=X (admin user scope),
+     * or GET /me/orders (current account).
      * Both use sendPaginated — orders array in `data` directly.
      */
-    list: async (_userId) => {
-      const endpoint = isAdmin() ? '/admin/orders' : '/me/orders';
-      const res = await http.get(endpoint);
-      const data = unwrap(res);
-      const orders = Array.isArray(data) ? data : (data?.orders || []);
-      return orders.map(normaliseOrder);
+    list: async (userId) => {
+      const normalizedUserId = String(userId || '').trim();
+      const shouldUseAdminOrders = isAdmin();
+      const endpoint = shouldUseAdminOrders ? '/admin/orders' : '/me/orders';
+      const pageSize = 100;
+      const readPage = async (page) => {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('limit', String(pageSize));
+        if (shouldUseAdminOrders && normalizedUserId) params.set('userId', normalizedUserId);
+
+        const res = await http.get(`${endpoint}?${params.toString()}`);
+        const raw = res.data || {};
+        const data = unwrap(res);
+        const orders = Array.isArray(data)
+          ? data
+          : (data?.orders || raw?.data?.orders || []);
+        const pagination = raw?.pagination || data?.pagination || raw?.data?.pagination || null;
+
+        return {
+          orders: orders.map(normaliseOrder),
+          pagination,
+        };
+      };
+
+      const firstPage = await readPage(1);
+      const pagination = firstPage.pagination || {};
+      const explicitPages = Number(pagination.pages || pagination.totalPages || 0);
+      const total = Number(pagination.total || pagination.totalItems || pagination.count || 0);
+      const limit = Number(pagination.limit || pageSize);
+      const computedPages = total > 0 && limit > 0 ? Math.ceil(total / limit) : 1;
+      const totalPages = Math.max(1, explicitPages || computedPages);
+
+      if (totalPages <= 1) return firstPage.orders;
+
+      const remainingPages = Array.from({ length: totalPages - 1 }, (_, index) => index + 2);
+      const remainingResults = await Promise.all(remainingPages.map((page) => readPage(page)));
+      const ordersById = new Map();
+
+      [...firstPage.orders, ...remainingResults.flatMap((result) => result.orders)].forEach((order) => {
+        const key = String(order?.id || order?._id || `${ordersById.size}`);
+        ordersById.set(key, order);
+      });
+
+      return Array.from(ordersById.values());
     },
 
     /**
@@ -2792,18 +2859,20 @@ const realApi = {
      *
      * @param {Object}  [params]
      * @param {number}  [params.page=1]
-     * @param {number}  [params.limit=20]
+     * @param {number}  [params.limit=100]
      * @param {string}  [params.status]
      * @param {string}  [params.search]    - free-text search (orderNumber, _id, playerID)
+     * @param {string}  [params.userId]    - exact site user ID filter
      * @param {string}  [params.startDate] - ISO date string (from)
      * @param {string}  [params.endDate]   - ISO date string (to)
      */
-    listPaginated: async ({ page = 1, limit = 20, status, search, startDate, endDate } = {}) => {
+    listPaginated: async ({ page = 1, limit = 100, status, search, userId, startDate, endDate } = {}) => {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('limit', String(limit));
       if (status && status !== 'all') params.set('status', status);
       if (search && String(search).trim()) params.set('search', String(search).trim());
+      if (userId && String(userId).trim()) params.set('userId', String(userId).trim());
       if (startDate) params.set('from', startDate);
       if (endDate) params.set('to', endDate);
 

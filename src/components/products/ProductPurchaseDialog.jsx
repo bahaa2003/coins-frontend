@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Copy, FileText, LockKeyhole, Package, UserRound, WalletCards, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import useAuthStore from '../../store/useAuthStore';
@@ -23,6 +24,7 @@ import {
 } from '../../utils/productPurchase';
 import { normalizeMoneyAmount } from '../../utils/money';
 import { devLogger } from '../../utils/devLogger';
+import { useBodyScrollLock } from '../../utils/bodyScrollLock';
 import './ProductPurchaseDialog.css';
 
 const getCopy = (language = 'ar') => (
@@ -32,7 +34,7 @@ const getCopy = (language = 'ar') => (
         unavailable: 'Unavailable',
         unitPrice: 'Unit Price',
         agentProductId: 'Agent ID',
-        accountNumber: 'Account Number',
+        accountNumber: 'Receiver Account ID',
         total: 'Total',
         quantity: 'Quantity',
         quantityPlaceholder: 'Enter quantity',
@@ -64,7 +66,7 @@ const getCopy = (language = 'ar') => (
         unavailable: 'غير متاح',
         unitPrice: 'سعر الوحدة',
         agentProductId: 'رقم آيدي الوكيل',
-        accountNumber: 'رقم الحساب',
+        accountNumber: 'آيدي الحساب المستلم',
         total: 'الإجمالي',
         quantity: 'الكمية',
         quantityPlaceholder: 'أدخل الكمية',
@@ -170,13 +172,7 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
   const [isLoading, setIsLoading] = useState(Boolean(productId && !initialProduct));
   const [successOrder, setSuccessOrder] = useState(null);
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -271,25 +267,49 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
     || ''
   ).trim();
   const configuredAccountNumber = String(
-    product?.displayAccountNumber
+    product?.targetAccountId
+    || product?.receivingAccountId
+    || product?.receiverAccountId
+    || product?.recipientAccountId
+    || product?.targetRecipientId
+    || product?.receivingAccount
+    || product?.targetAccount
+    || product?.destinationAccountId
+    || product?.accountId
+    || product?.displayAccountNumber
     || product?.purchaseAccountNumber
     || product?.accountNumber
     || product?.productAccountNumber
     || ''
   ).trim();
+  const hasReceiverAccountId = Boolean(
+    product?.targetAccountId
+    || product?.receivingAccountId
+    || product?.receiverAccountId
+    || product?.recipientAccountId
+    || product?.targetRecipientId
+    || product?.receivingAccount
+    || product?.targetAccount
+    || product?.destinationAccountId
+    || product?.accountId
+  );
   const shouldShowAccountNumber = Boolean(
-    product?.showPurchaseAccountNumber
-    ?? product?.showAccountNumber
-    ?? product?.displayAccountNumber
-    ?? false
+    hasReceiverAccountId
+    || (
+      product?.showPurchaseAccountNumber
+      ?? product?.showAccountNumber
+      ?? product?.displayAccountNumber
+      ?? false
+    )
   );
   const displayedAccountNumber = shouldShowAccountNumber
     ? (configuredAccountNumber || agentProductId)
     : '';
   const isPurchasable = product?.storefrontStatus?.isPurchasable !== false;
   const statusLabel = isPurchasable
-    ? (product?.storefrontStatus?.label || copy.available)
-    : (product?.storefrontStatus?.label || copy.unavailable);
+    ? (product?.storefrontStatus?.label || product?.storefrontStatus?.badgeLabel || copy.available)
+    : (product?.storefrontStatus?.label || product?.storefrontStatus?.badgeLabel || copy.unavailable);
+  const purchaseButtonLabel = isSubmitting ? copy.buying : (isPurchasable ? copy.buyNow : statusLabel);
 
   const primaryOrderField = orderFields.find((field) => String(field?.key || '').toLowerCase() === 'playerid')
     || orderFields.find((field) => !isUploadFieldType(field?.type))
@@ -306,7 +326,6 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
     () => orderFields.filter((field) => String(field?.key || '').trim() !== primaryOrderFieldKey),
     [orderFields, primaryOrderFieldKey]
   );
-
   const validateForm = () => {
     const identifier = sanitizeOrderFieldValue(userId).trim();
     if (!quantityInput || !Number.isFinite(quantity)) return copy.emptyQuantity;
@@ -674,7 +693,7 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
     );
   };
 
-  return (
+  const dialog = (
     <div className="purchase-dialog-overlay" dir={dir} role="dialog" aria-modal="true">
       <button type="button" className="purchase-dialog-backdrop" onClick={onClose} aria-label={copy.cancel} />
 
@@ -757,7 +776,7 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
           <>
             <div className="purchase-dialog-product">
               <div className="purchase-dialog-product-visual">
-                <div className="purchase-dialog-image">
+                <div className={`purchase-dialog-image ${isPurchasable ? '' : 'is-unavailable'}`}>
                   <ProductImage product={product} />
                 </div>
               </div>
@@ -845,7 +864,7 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
                 disabled={isSubmitting || !isPurchasable}
               >
                 <LockKeyhole className="h-5 w-5" />
-                {isSubmitting ? copy.buying : copy.buyNow}
+                {purchaseButtonLabel}
               </button>
               <button type="button" className="purchase-dialog-secondary" onClick={onClose}>
                 {copy.cancel}
@@ -856,6 +875,10 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
       </motion.section>
     </div>
   );
+
+  if (typeof document === 'undefined') return dialog;
+
+  return createPortal(dialog, document.body);
 };
 
 export default ProductPurchaseDialog;

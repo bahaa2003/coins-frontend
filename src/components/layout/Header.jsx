@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CheckCircle2, Clock3, CreditCard, Menu, ShoppingBag, UserCheck, Wallet, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ const Header = ({ toggleSidebar }) => {
   const { user } = useAuthStore();
   const { notifications, unreadCount, isLoading, loadNotifications, loadUnreadCount, markAsRead, markAllAsRead } = useNotificationStore();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationsRef = useRef(null);
   const { dir } = useLanguage();
 
   const language = String(i18n.resolvedLanguage || i18n.language || 'ar').toLowerCase().startsWith('ar') ? 'ar' : 'en';
@@ -28,6 +29,15 @@ const Header = ({ toggleSidebar }) => {
   const walletDisplayValue = formatWalletAmount(walletValue, user?.currency || 'USD');
   const walletTargetPath = isCustomer ? '/wallet' : '/admin/wallet';
   const shouldShowWallet = isCustomer || isBackoffice;
+  const displayedNotifications = useMemo(() => (
+    [...notifications].sort((left, right) => {
+      const rightTime = new Date(right?.createdAt || 0).getTime();
+      const leftTime = new Date(left?.createdAt || 0).getTime();
+      return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+    })
+  ), [notifications]);
+  const latestNotificationId = displayedNotifications[0]?.id || '';
+
   useEffect(() => {
     if (!user?.id) return undefined;
     void loadUnreadCount().catch(() => {});
@@ -139,11 +149,33 @@ const Header = ({ toggleSidebar }) => {
     };
   };
 
-  const handleNotificationsToggle = () => {
-    setIsNotificationsOpen((previous) => !previous);
-    if (!isNotificationsOpen) {
-      void loadNotifications().catch(() => {});
+  const closeNotifications = useCallback(() => {
+    setIsNotificationsOpen(false);
+    if (unreadCount > 0 || notifications.some((notification) => !notification.read)) {
+      void markAllAsRead();
     }
+  }, [markAllAsRead, notifications, unreadCount]);
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (notificationsRef.current?.contains(event.target)) return;
+      closeNotifications();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [closeNotifications, isNotificationsOpen]);
+
+  const handleNotificationsToggle = () => {
+    if (isNotificationsOpen) {
+      closeNotifications();
+      return;
+    }
+
+    setIsNotificationsOpen(true);
+    void loadNotifications().catch(() => {});
   };
 
   const handleNotificationClick = (notification) => {
@@ -151,7 +183,7 @@ const Header = ({ toggleSidebar }) => {
       void markAsRead(notification.id);
     }
     navigate(resolveNotificationTarget(notification));
-    setIsNotificationsOpen(false);
+    closeNotifications();
   };
 
   const handleMarkAllAsRead = () => {
@@ -183,7 +215,7 @@ const Header = ({ toggleSidebar }) => {
           )}>
             <ThemeToggle compact className="h-[1.875rem] w-[1.875rem] shrink-0 rounded-full border-[color:rgb(var(--color-border-rgb)/0.84)] bg-[radial-gradient(circle_at_35%_25%,rgb(255_255_255/0.16),transparent_34%),linear-gradient(180deg,rgb(10_17_42/0.88),rgb(2_6_19/0.78))] shadow-[inset_0_0_18px_rgb(34_211_238/0.08),0_0_28px_-18px_rgb(34_211_238/0.9)] min-[380px]:h-8 min-[380px]:w-8 sm:h-8 sm:w-8" />
 
-            <div className="relative">
+            <div ref={notificationsRef} className="relative">
               <button
                 type="button"
                 onClick={handleNotificationsToggle}
@@ -204,9 +236,14 @@ const Header = ({ toggleSidebar }) => {
                     <p className="text-sm font-bold text-[var(--color-text)]">الإشعارات</p>
                   </div>
                   <div className="max-h-[calc(50vh-3.25rem)] overflow-y-auto p-2">
-                    {notifications.length ? notifications.map((notification) => {
+                    {isLoading ? (
+                      <p className="px-3 py-6 text-center text-sm text-[var(--color-text-secondary)]">
+                        جاري تحميل الإشعارات...
+                      </p>
+                    ) : displayedNotifications.length ? displayedNotifications.map((notification) => {
                       const meta = getNotificationMeta(notification);
                       const NotificationIcon = meta.icon;
+                      const isLatestNotification = String(notification.id) === String(latestNotificationId);
 
                       return (
                         <button
@@ -215,7 +252,8 @@ const Header = ({ toggleSidebar }) => {
                           onClick={() => handleNotificationClick(notification)}
                           className={cn(
                             'block w-full rounded-xl border px-3 py-2.5 text-start transition hover:-translate-y-0.5 hover:bg-[color:rgb(var(--color-primary-rgb)/0.08)]',
-                            notification.read ? 'border-transparent opacity-75' : getNotificationTone(notification.type)
+                            notification.read ? 'border-transparent opacity-75' : getNotificationTone(notification.type),
+                            isLatestNotification && 'border-[color:rgb(var(--color-primary-rgb)/0.46)] bg-[color:rgb(var(--color-primary-rgb)/0.08)]'
                           )}
                         >
                           <span className="flex items-start gap-3">

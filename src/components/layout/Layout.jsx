@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, ArrowRight, ClipboardList, Phone } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -10,8 +11,6 @@ import { isAdminRole } from '../../utils/authRoles';
 import BackToTopButton from '../ui/BackToTopButton';
 import {
   getDashboardPathForRole,
-  getPreviousVisitedPath,
-  isSidebarRootPath,
   registerVisitedPath,
 } from '../../utils/navigation';
 
@@ -99,45 +98,30 @@ const Layout = ({ children = null }) => {
   );
   const shellOffset = !isMobile ? (isSidebarOpen ? '318px' : '112px') : '0';
   const showCopyrightFooter = !isAdmin || isHomePage;
+  const fixedShell = (
+    <>
+      <Sidebar
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+        isMobile={isMobile}
+      />
+
+      <div
+        className="fixed z-40 max-w-full transition-all duration-300"
+        style={{
+          top: isMobile ? 'max(0.75rem, env(safe-area-inset-top))' : '1rem',
+          [dir === 'rtl' ? 'right' : 'left']: isMobile ? '12px' : shellOffset,
+          [dir === 'rtl' ? 'left' : 'right']: isMobile ? '12px' : '16px',
+        }}
+      >
+        <Header toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      </div>
+    </>
+  );
 
   const handleGoBack = () => {
-    const path = String(location.pathname || '');
-    const isWalletTopupFlow = (
-      path === '/wallet/add-balance'
-      || path.startsWith('/wallet/payment-details/')
-    );
-    const openedFromSettings = Boolean(location?.state?.fromSettings);
-    const isAdmin = isAdminRole(user?.role);
-    const isAdminWallet = path === '/admin/wallet';
-
-    if (isWalletTopupFlow) {
-      navigate('/wallet');
-      return;
-    }
-
-    if (openedFromSettings) {
-      navigate('/settings');
-      return;
-    }
-
-    if (isAdmin && isAdminWallet) {
-      navigate('/dashboard');
-      return;
-    }
-
-    if (isSidebarRootPath(path, user?.role)) {
-      navigate(getDashboardPathForRole(user?.role));
-      return;
-    }
-
-    const previousPath = getPreviousVisitedPath(path);
-    if (previousPath) {
-      navigate(previousPath);
-      return;
-    }
-
-    if (isAdmin && !isAdminWallet) {
-      navigate('/admin/dashboard');
+    if (window.history.length > 1) {
+      navigate(-1);
       return;
     }
 
@@ -147,26 +131,12 @@ const Layout = ({ children = null }) => {
   return (
     <div className={`relative min-h-screen overflow-x-clip bg-transparent text-[var(--color-text)] ${isAdminPage ? 'layout-admin-light' : ''}`}>
       <AmbientBackground />
-      <Sidebar
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-        isMobile={isMobile}
-      />
+      {typeof document !== 'undefined' ? createPortal(fixedShell, document.body) : fixedShell}
 
       <div
         className="min-h-screen min-w-0 max-w-full transition-all duration-300"
         style={{ [dir === 'rtl' ? 'marginRight' : 'marginLeft']: shellOffset }}
       >
-        <div
-          className="fixed z-40 max-w-full transition-all duration-300"
-          style={{
-            top: isMobile ? 'max(0.75rem, env(safe-area-inset-top))' : '1rem',
-            [dir === 'rtl' ? 'right' : 'left']: isMobile ? '12px' : shellOffset,
-            [dir === 'rtl' ? 'left' : 'right']: isMobile ? '12px' : '16px',
-          }}
-        >
-          <Header toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-        </div>
         <div className="h-[4.9rem] sm:h-[6.5rem]" aria-hidden="true" />
 
         {!isHomePage && (
@@ -199,7 +169,7 @@ const Layout = ({ children = null }) => {
         )}
 
         <main className={`min-w-0 overflow-x-hidden px-3 py-5 sm:px-4 md:px-6 md:py-6 lg:px-8 lg:py-8 ${isHomePage ? 'scrollbar-hide' : ''} ${isCustomerDashboard ? '!pt-0 sm:!pt-0 md:!pt-0 lg:!pt-0' : ''}`}>
-          <div className="mx-auto w-full min-w-0 max-w-[var(--shell-max-width)] animate-[page-fade-in_0.35s_ease-out]">
+          <div className="mx-auto w-full min-w-0 max-w-[var(--shell-max-width)]">
             {children || <Outlet />}
           </div>
         </main>

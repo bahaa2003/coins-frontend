@@ -13,8 +13,8 @@ import HeaderBrand from '../components/layout/HeaderBrand';
 import useAuthStore from '../store/useAuthStore';
 import { getDefaultRouteForRole } from '../utils/authRoles';
 import slideOneHeroImage from '../assets/slide-1.webp';
-import buyCardsImage from '../assets/buyCards.webp';
-import chatAppsImage from '../assets/chatApps.webp';
+import buyCardsImage from '../assets/slide-2.webp';
+import chatAppsImage from '../assets/slide-3.webp';
 
 const Landing = () => {
   const { t, i18n } = useTranslation();

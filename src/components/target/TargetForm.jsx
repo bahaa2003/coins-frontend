@@ -7,7 +7,7 @@ import UploadProof from './UploadProof';
 import { formatNumber } from '../../utils/intl';
 import { resolveImageUrl } from '../../utils/imageUrl';
 import { useToast } from '../ui/Toast';
-import { isPaymentMethodAllowed } from '../../utils/paymentSettings';
+import { isPaymentMethodAllowed, isSiteWalletPaymentMethod } from '../../utils/paymentSettings';
 
 const getPaymentMethodLabel = (method) => {
   const normalized = String(method || '').trim().toLowerCase();
@@ -16,6 +16,7 @@ const getPaymentMethodLabel = (method) => {
   if (normalized === 'orange cash') return 'أورانج كاش';
   if (normalized === 'etisalat cash') return 'اتصالات كاش';
   if (normalized === 'binance') return 'بينانس';
+  if (isSiteWalletPaymentMethod(normalized)) return 'محفظة الموقع';
   return method;
 };
 
@@ -54,6 +55,7 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
     () => availablePaymentMethods.find((method) => String(method.id) === String(paymentMethodId)) || null,
     [availablePaymentMethods, paymentMethodId]
   );
+  const isSiteWalletMethod = isSiteWalletPaymentMethod(selectedPaymentMethod || paymentMethodId);
 
   const coinAmountValue = Number(coinAmount || 0);
   const unitPrice = Number(selectedApp?.unitPrice || 0);
@@ -80,6 +82,11 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
     }
   }, [availablePaymentMethods, paymentMethodId]);
 
+  useEffect(() => {
+    if (!isSiteWalletMethod) return;
+    setTransferNumber('');
+  }, [isSiteWalletMethod]);
+
   const resetForm = () => {
     setCoinAmount('');
     setSenderId('');
@@ -91,7 +98,9 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!selectedApp?.id || !Number.isInteger(coinAmountValue) || coinAmountValue <= 0 || !selectedPaymentMethod || !senderId.trim() || !transferNumber.trim() || !transactionNumber.trim() || !proof?.file) {
+    const hasTransferDetails = isSiteWalletMethod || transferNumber.trim();
+    const hasPaymentDetails = hasTransferDetails && transactionNumber.trim() && proof?.file;
+    if (!selectedApp?.id || !Number.isInteger(coinAmountValue) || coinAmountValue <= 0 || !selectedPaymentMethod || !senderId.trim() || !hasPaymentDetails) {
       addToast('أكمل بيانات طلب التارجت وارفع صورة إثبات التحويل.', 'error');
       return;
     }
@@ -103,11 +112,13 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
         targetAccountIdSnapshot: targetAccountId,
         coinAmount: coinAmountValue,
         senderId: senderId.trim(),
-        transferNumber: transferNumber.trim(),
+        transferNumber: isSiteWalletMethod ? 'محفظة الموقع' : transferNumber.trim(),
         transactionNumber: transactionNumber.trim(),
+        paymentReference: transactionNumber.trim(),
         paymentMethodId: selectedPaymentMethod.id,
         paymentMethod: selectedPaymentMethod.name,
         screenshotProof: proof.file,
+        isSiteWalletPayment: isSiteWalletMethod,
       });
       resetForm();
     } finally {
@@ -176,7 +187,7 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
           <div className="space-y-4">
             {targetAccountId ? (
               <div className="rounded-[1.15rem] border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] p-3">
-                <p className="text-xs font-bold text-[var(--color-text-secondary)]">ايدي المستلم للتارجت</p>
+                <p className="text-xs font-bold text-[var(--color-text-secondary)]">آيدي الحساب المستلم</p>
                 <p className="mt-1 break-all text-base font-black text-[var(--color-primary)]">{targetAccountId}</p>
               </div>
             ) : null}
@@ -216,19 +227,25 @@ const TargetForm = ({ products = [], paymentMethods = [], onSubmit }) => {
                   <p className="mt-1.5 text-xs text-[var(--color-error)]">لا توجد طرق دفع مفعّلة لهذا التطبيق حاليًا.</p>
                 ) : null}
               </label>
-              <Input
-                label="رقم التحويل"
-                value={transferNumber}
-                onChange={(event) => setTransferNumber(event.target.value)}
-                placeholder="رقم المحفظة أو حساب InstaPay أو مرجع Binance"
-              />
+              {!isSiteWalletMethod ? (
+                <Input
+                  label="رقم التحويل"
+                  value={transferNumber}
+                  onChange={(event) => setTransferNumber(event.target.value)}
+                  placeholder="رقم المحفظة أو حساب InstaPay أو مرجع Binance"
+                />
+              ) : (
+                <div className="rounded-[1rem] border border-[color:rgb(var(--color-primary-rgb)/0.22)] bg-[color:rgb(var(--color-primary-rgb)/0.08)] p-3 text-xs leading-6 text-[var(--color-text-secondary)]">
+                  سيتم استلام قيمة الطلب على محفظة الموقع، لذلك لا تحتاج لإدخال رقم تحويل.
+                </div>
+              )}
             </div>
 
             <Input
               label="رقم العملية"
               value={transactionNumber}
               onChange={(event) => setTransactionNumber(event.target.value)}
-              placeholder="اكتب رقم العملية أو مرجع الدفع"
+              placeholder={isSiteWalletMethod ? 'اكتب رقم العملية للسحب' : 'اكتب رقم العملية أو مرجع الدفع'}
             />
 
             <UploadProof label="صورة إثبات التحويل" value={proof} onChange={setProof} />

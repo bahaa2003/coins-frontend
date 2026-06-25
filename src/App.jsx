@@ -1,7 +1,8 @@
-import React, { Suspense, lazy, useEffect, useRef } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import FloatingWhatsApp from './components/ui/FloatingWhatsApp';
+import PageTransition from './components/app/PageTransition';
 import SessionBootstrap from './components/app/SessionBootstrap';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -15,66 +16,55 @@ import {
 } from './utils/accountStatus';
 import useAuthStore from './store/useAuthStore';
 import DeveloperApi from './pages/DeveloperApi';
+import { routeLoaders } from './transitions/routeModules';
 
-const Layout = lazy(() => import('./components/layout/Layout'));
-const Auth = lazy(() => import('./pages/Auth'));
-const AccountPending = lazy(() => import('./pages/AccountPending'));
-const AccountRejected = lazy(() => import('./pages/AccountRejected'));
-const AccountVerificationRequired = lazy(() => import('./pages/AccountVerificationRequired'));
-const EmailVerified = lazy(() => import('./pages/EmailVerified'));
-const PublicCatalog = lazy(() => import('./pages/PublicCatalog'));
-const AboutUsPage = lazy(() => import('./pages/AboutUsPage'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const Orders = lazy(() => import('./pages/Orders'));
-const Products = lazy(() => import('./pages/Products'));
-const ProductPurchasePage = lazy(() => import('./pages/ProductPurchasePage'));
-const Wallet = lazy(() => import('./pages/Wallet'));
-const Settings = lazy(() => import('./pages/Settings'));
-const ContactUs = lazy(() => import('./pages/ContactUs'));
-const CreatedBy = lazy(() => import('./pages/CreatedBy'));
-const Account = lazy(() => import('./pages/Account'));
-const AccountSecurity = lazy(() => import('./pages/AccountSecurity'));
-const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
-const AdminGroups = lazy(() => import('./pages/admin/AdminGroups'));
-const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
-const AdminWallet = lazy(() => import('./pages/admin/AdminWallet'));
-const AdminCurrencies = lazy(() => import('./pages/admin/AdminCurrencies'));
-const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
-const AdminPaymentMethods = lazy(() => import('./pages/admin/AdminPaymentMethods'));
-const WhatsAppSettings = lazy(() => import('./pages/admin/WhatsAppSettings'));
-const AdminSupervisors = lazy(() => import('./pages/admin/AdminSupervisors'));
-const SupervisorMonitoring = lazy(() => import('./pages/admin/SupervisorMonitoring'));
-const AdminSuppliers = lazy(() => import('./pages/admin/AdminSuppliers'));
-const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
-const AdminUserTransactions = lazy(() => import('./pages/admin/AdminUserTransactions'));
-const AdminTargetRequests = lazy(() => import('./pages/admin/AdminTargetRequests'));
-const BuyTarget = lazy(() => import('./pages/BuyTarget'));
-const TargetOrders = lazy(() => import('./pages/TargetOrders'));
-const AddBalance = lazy(() => import('./pages/AddBalance'));
-const WalletTopupHistory = lazy(() => import('./pages/WalletTopupHistory'));
-const PaymentDetails = lazy(() => import('./pages/PaymentDetails'));
+const Layout = lazy(routeLoaders.Layout);
+const Auth = lazy(routeLoaders.Auth);
+const AccountPending = lazy(routeLoaders.AccountPending);
+const AccountRejected = lazy(routeLoaders.AccountRejected);
+const AccountVerificationRequired = lazy(routeLoaders.AccountVerificationRequired);
+const EmailVerified = lazy(routeLoaders.EmailVerified);
+const PublicCatalog = lazy(routeLoaders.PublicCatalog);
+const AboutUsPage = lazy(routeLoaders.AboutUsPage);
+const Dashboard = lazy(routeLoaders.Dashboard);
+const AdminDashboard = lazy(routeLoaders.AdminDashboard);
+const Orders = lazy(routeLoaders.Orders);
+const Products = lazy(routeLoaders.Products);
+const ProductPurchasePage = lazy(routeLoaders.ProductPurchasePage);
+const Wallet = lazy(routeLoaders.Wallet);
+const Settings = lazy(routeLoaders.Settings);
+const ContactUs = lazy(routeLoaders.ContactUs);
+const CreatedBy = lazy(routeLoaders.CreatedBy);
+const Account = lazy(routeLoaders.Account);
+const AccountSecurity = lazy(routeLoaders.AccountSecurity);
+const AdminUsers = lazy(routeLoaders.AdminUsers);
+const AdminGroups = lazy(routeLoaders.AdminGroups);
+const AdminProducts = lazy(routeLoaders.AdminProducts);
+const AdminWallet = lazy(routeLoaders.AdminWallet);
+const AdminCurrencies = lazy(routeLoaders.AdminCurrencies);
+const AdminPayments = lazy(routeLoaders.AdminPayments);
+const AdminPaymentMethods = lazy(routeLoaders.AdminPaymentMethods);
+const WhatsAppSettings = lazy(routeLoaders.WhatsAppSettings);
+const AdminSupervisors = lazy(routeLoaders.AdminSupervisors);
+const SupervisorMonitoring = lazy(routeLoaders.SupervisorMonitoring);
+const AdminSuppliers = lazy(routeLoaders.AdminSuppliers);
+const AdminOrders = lazy(routeLoaders.AdminOrders);
+const AdminUserTransactions = lazy(routeLoaders.AdminUserTransactions);
+const AdminTargetRequests = lazy(routeLoaders.AdminTargetRequests);
+const BuyTarget = lazy(routeLoaders.BuyTarget);
+const TargetOrders = lazy(routeLoaders.TargetOrders);
+const AddBalance = lazy(routeLoaders.AddBalance);
+const WalletTopupHistory = lazy(routeLoaders.WalletTopupHistory);
+const PaymentDetails = lazy(routeLoaders.PaymentDetails);
 
 const ADMIN_PANEL_ROLES = [...ADMIN_ROLES, ...SUPERVISOR_ROLES];
 
-const RouteLoader = () => null;
-
-const ScrollToTopOnPathChange = () => {
-  const { pathname } = useLocation();
-  const previousPathnameRef = useRef(pathname);
-
-  useEffect(() => {
-    if (previousPathnameRef.current === pathname) return;
-    previousPathnameRef.current = pathname;
-
-    if (typeof window === 'undefined') return;
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    });
-  }, [pathname]);
-
-  return null;
-};
+const RouteLoader = () => (
+  <div className="page-route-loader" role="status" aria-live="polite">
+    <span className="page-route-loader__spinner" aria-hidden="true" />
+    <span className="sr-only">Loading page</span>
+  </div>
+);
 
 const renderSuspended = (element) => (
   <Suspense fallback={<RouteLoader />}>
@@ -99,8 +89,7 @@ const AdminDashboardRoute = () => {
   return renderSuspended(<AdminDashboard />);
 };
 
-const AnimatedAppRoutes = () => {
-  const location = useLocation();
+const AnimatedAppRoutes = ({ location }) => {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   const routes = (
@@ -453,15 +442,7 @@ const AnimatedAppRoutes = () => {
     </Routes>
   );
 
-  if (isAdminRoute) {
-    return <div className="min-h-screen">{routes}</div>;
-  }
-
-  return (
-    <div className="min-h-screen animate-[fade-in_0.16s_ease-out] motion-reduce:animate-none">
-      {routes}
-    </div>
-  );
+  return <div className={`min-h-screen${isAdminRoute ? ' admin-route-view' : ''}`}>{routes}</div>;
 };
 
 function App() {
@@ -471,8 +452,9 @@ function App() {
         <ToastProvider>
           <SessionBootstrap />
           <BrowserRouter>
-            <ScrollToTopOnPathChange />
-            <AnimatedAppRoutes />
+            <PageTransition>
+              {(location) => <AnimatedAppRoutes location={location} />}
+            </PageTransition>
             <FloatingWhatsApp />
           </BrowserRouter>
         </ToastProvider>

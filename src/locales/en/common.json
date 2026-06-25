@@ -242,12 +242,18 @@
     "forgotPasswordDesc": "Enter your email and we will send a password reset link"
   },
   "sidebar": {
+    "accountSection": "Account",
+    "adminSection": "Administration",
     "dashboard": "Dashboard",
     "managerDashboard": "Manager Dashboard",
     "myAccount": "My Account",
     "accountProtection": "Account Protection",
     "browseStore": "Store",
     "wallet": "Wallet",
+    "myOrders": "My Orders",
+    "adminDashboard": "Dashboard",
+    "adminWallet": "Admin Wallet",
+    "ordersManager": "Orders Manager",
     "apiSandbox": "API Sandbox",
     "users": "Users",
     "supervisors": "Supervisors",

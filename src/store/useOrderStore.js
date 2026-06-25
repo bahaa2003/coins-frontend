@@ -15,6 +15,7 @@ const ORDERS_CACHE_TTL = 15 * 1000; // short TTL to keep navigation smooth and r
 let ordersRequest = null;
 let ordersRequestScope = '';
 let ordersRequestId = 0;
+const ADMIN_ORDERS_DEFAULT_LIMIT = 100;
 
 const CATEGORY_LABELS_AR = {
   games: 'الألعاب',
@@ -97,17 +98,17 @@ const useOrderStore = create((set, get) => ({
 
       // ── Admin paginated orders (separate from customer orders) ────────
       adminOrders: [],
-      adminPagination: { page: 1, limit: 20, total: 0, pages: 0 },
+      adminPagination: { page: 1, limit: ADMIN_ORDERS_DEFAULT_LIMIT, total: 0, pages: 0 },
       adminOrdersLoading: false,
 
       /**
        * Fetch admin orders with server-side pagination.
        * Does NOT use the regular orders cache — admin has its own state slice.
        */
-      loadAdminOrders: async ({ page = 1, limit = 20, status, search, startDate, endDate } = {}) => {
+      loadAdminOrders: async ({ page = 1, limit = ADMIN_ORDERS_DEFAULT_LIMIT, status, search, userId, startDate, endDate } = {}) => {
         set({ adminOrdersLoading: true });
         try {
-          const result = await apiClient.orders.listPaginated({ page, limit, status, search, startDate, endDate });
+          const result = await apiClient.orders.listPaginated({ page, limit, status, search, userId, startDate, endDate });
           set({
             adminOrders: result.orders,
             adminPagination: result.pagination,

@@ -179,7 +179,11 @@ const asNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const toLower = (value) => String(value || '').trim().toLowerCase();
+const toLower = (value) => String(value || '')
+  .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+  .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+  .trim()
+  .toLowerCase();
 const toDisplayString = (value) => String(value || '').trim();
 const normalizeDynamicFieldKey = (value) => toLower(value).replace(/[\s_-]+/g, '');
 const normalizeDynamicFieldValue = (value) => toDisplayString(value).toLowerCase();
@@ -748,6 +752,28 @@ export const enrichOrders = (orders, { users = [], products = [], language = 'ar
       manualStatusEditable: isManualStatusEditableOrder(hydratedOrder),
       rawStatusLabel: humanizeOrderToken(order?.status || ''),
       searchIndex: toLower([
+        hydratedOrder?.id,
+        hydratedOrder?._id,
+        hydratedOrder?.orderNumber,
+        hydratedOrder?.internalOrderNumber,
+        hydratedOrder?.siteOrderNumber,
+        hydratedOrder?.displayOrderId,
+        hydratedOrder?.externalOrderId,
+        hydratedOrder?.providerOrderId,
+        hydratedOrder?.supplierOrderNumber,
+        hydratedOrder?.supplierRequestSnapshot?.orderId,
+        hydratedOrder?.supplierResponseSnapshot?.orderId,
+        hydratedOrder?.supplierResponseSnapshot?.data?.orderId,
+        hydratedOrder?.userId,
+        hydratedOrder?.customerId,
+        hydratedOrder?.user?._id,
+        hydratedOrder?.user?.id,
+        hydratedOrder?.customer?._id,
+        hydratedOrder?.customer?.id,
+        hydratedOrder?.playerId,
+        hydratedOrder?.uid,
+        hydratedOrder?.username,
+        hydratedOrder?.customerInput,
         siteOrderNumber,
         supplierOrderNumber,
         productName,

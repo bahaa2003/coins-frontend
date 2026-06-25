@@ -1,5 +1,6 @@
 const PAYMENT_METHOD_FIELDS = {
   mobile_wallet: ['amount'],
+  site_wallet: [],
   bank_transfer: ['amount'],
   credit_card: ['amount', 'cardNumber', 'expiryDate', 'cvv'],
   usdt: ['amount'],
@@ -91,6 +92,11 @@ const PAYMENT_METHOD_ALIASES = {
   'اتصالات كاش': ['etisalat', 'etisalat cash'],
   binance: ['بينانس'],
   'بينانس': ['binance'],
+  'site wallet': ['site_wallet', 'wallet', 'محفظة الموقع', 'محفظه الموقع'],
+  site_wallet: ['site wallet', 'wallet', 'محفظة الموقع', 'محفظه الموقع'],
+  wallet: ['site wallet', 'site_wallet', 'محفظة الموقع', 'محفظه الموقع'],
+  'محفظة الموقع': ['site wallet', 'site_wallet', 'wallet', 'محفظه الموقع'],
+  'محفظه الموقع': ['site wallet', 'site_wallet', 'wallet', 'محفظة الموقع'],
 };
 
 const getPaymentMethodTokenVariants = (value) => {
@@ -194,11 +200,21 @@ export const isPaymentMethodAllowed = (method, allowedValues = []) => {
   ].some((value) => getPaymentMethodTokenVariants(value).some((token) => allowedTokens.has(token)));
 };
 
+export const isSiteWalletPaymentMethod = (methodOrValue) => {
+  const values = typeof methodOrValue === 'object' && methodOrValue !== null
+    ? [methodOrValue.id, methodOrValue.name, methodOrValue.paymentMethod, methodOrValue.paymentMethodName, methodOrValue.type]
+    : [methodOrValue];
+
+  return values.some((value) => getPaymentMethodTokenVariants(value)
+    .some((token) => ['site wallet', 'site_wallet', 'wallet', 'محفظة الموقع', 'محفظه الموقع'].includes(token)));
+};
+
 const TARGET_REQUIRED_PAYMENT_METHODS = [
   { id: 'vodafone cash', name: 'فودافون كاش', type: 'mobile_wallet', isActive: true },
   { id: 'etisalat cash', name: 'اتصالات كاش', type: 'mobile_wallet', isActive: true },
   { id: 'orange cash', name: 'أورانج كاش', type: 'mobile_wallet', isActive: true },
   { id: 'instapay', name: 'إنستا باي', type: 'mobile_wallet', isActive: true },
+  { id: 'site_wallet', name: 'محفظة الموقع', type: 'site_wallet', isActive: true },
 ];
 
 export const getTargetPaymentMethods = (settings) => {

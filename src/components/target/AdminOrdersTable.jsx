@@ -9,6 +9,7 @@ import {
   getTargetOrderStatusVariant,
   normalizeTargetOrderStatus,
 } from '../../utils/targetOrders';
+import { isSiteWalletPaymentMethod } from '../../utils/paymentSettings';
 
 const copyText = (value) => {
   const text = String(value || '').trim();
@@ -43,6 +44,7 @@ const AdminOrdersTable = ({ requests = [], onStatusChange, onViewDetails, canCon
       <TableBody>
         {requests.map((request) => {
           const normalizedStatus = normalizeTargetOrderStatus(request.status);
+          const isSiteWallet = isSiteWalletPaymentMethod(request.paymentMethodId || request.paymentMethod || request.paymentMethodName);
           return (
           <TableRow key={request.id}>
             <TableCell>
@@ -82,7 +84,7 @@ const AdminOrdersTable = ({ requests = [], onStatusChange, onViewDetails, canCon
                 className="max-w-40 truncate rounded-lg border border-[color:rgb(var(--color-primary-rgb)/0.2)] px-2 py-1 text-xs font-bold text-[var(--color-primary)] transition hover:bg-[color:rgb(var(--color-primary-rgb)/0.08)]"
                 title="نسخ"
               >
-                {request.transferNumber || request.paymentAccount || '-'}
+                {isSiteWallet ? 'محفظة الموقع' : (request.transferNumber || request.paymentAccount || '-')}
               </button>
             </TableCell>
             <TableCell>

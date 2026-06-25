@@ -1,7 +1,9 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import Button, { cn } from './Button';
+import { useBodyScrollLock } from '../../utils/bodyScrollLock';
 
 const sizeClassNames = {
   xxs: 'max-w-[20rem]',
@@ -11,10 +13,12 @@ const sizeClassNames = {
   xl: 'max-w-4xl',
 };
 
-const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', className: modalClassName, placement = 'responsive' }) => {
-  const backdropZ = modalClassName || 'z-50';
+const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', className: modalClassName, placement = 'center' }) => {
+  const backdropZ = modalClassName || 'z-[220]';
   const isCentered = placement === 'center';
-  return (
+  useBodyScrollLock(isOpen);
+
+  const modal = (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -63,6 +67,10 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'md', classNam
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === 'undefined') return modal;
+
+  return createPortal(modal, document.body);
 };
 
 export default Modal;

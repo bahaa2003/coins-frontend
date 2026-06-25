@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../ui/Button';
+import UnavailableLockOverlay from './UnavailableLockOverlay';
 
 const ProductCardSimple = React.memo(({
   product,
@@ -10,6 +11,7 @@ const ProductCardSimple = React.memo(({
   unavailableLabel = 'غير متاح',
 }) => {
   const isUnavailable = product.storefrontStatus?.isPurchasable === false;
+  const resolvedUnavailableLabel = product.storefrontStatus?.badgeLabel || unavailableLabel;
   const imageSrc = String(product.image || '').trim();
   const arabicName = product.nameAr || product.displayName || product.name || 'Product';
   const englishName = product.name || product.externalProductName || product.nameAr || '';
@@ -18,10 +20,19 @@ const ProductCardSimple = React.memo(({
   return (
     <button
       type="button"
-      onClick={() => onOpen(product)}
-      className="storefront-product-card group relative isolate flex w-full origin-center select-none flex-col rounded-[1.25rem] p-2 text-start transition-all duration-200 ease-out hover:-translate-y-0.5"
+      onClick={() => {
+        if (!isUnavailable) onOpen(product);
+      }}
+      disabled={isUnavailable}
+      className={cn(
+        'storefront-product-card group relative isolate flex w-full origin-center select-none flex-col rounded-[1.25rem] p-2 text-start transition-all duration-200 ease-out hover:-translate-y-0.5',
+        isUnavailable && 'cursor-not-allowed hover:translate-y-0'
+      )}
       aria-label={displayName}
     >
+      {isUnavailable ? (
+        <span className="pointer-events-none absolute inset-0 z-10 rounded-[1.25rem] bg-black/38" aria-hidden="true" />
+      ) : null}
       <div className="storefront-product-media relative overflow-hidden rounded-[1rem]">
         {imageSrc ? (
           <img
@@ -47,15 +58,13 @@ const ProductCardSimple = React.memo(({
           </div>
         )}
         {isUnavailable && (
-          <div className="absolute inset-0 grid place-items-center bg-black/24 px-2">
-            <span className="rounded-full border border-white/22 bg-black/60 px-2.5 py-1 text-[11px] font-black text-white shadow-[0_10px_28px_-18px_rgb(0_0_0/0.9)] backdrop-blur-md sm:px-3 sm:py-1.5 sm:text-xs">
-              {unavailableLabel}
-            </span>
+          <div className="absolute inset-0 z-20 bg-black/24 px-2 pt-2">
+            <UnavailableLockOverlay label={resolvedUnavailableLabel} size="md" />
           </div>
         )}
       </div>
 
-      <div className="storefront-product-title mt-2 w-full text-center transition-colors duration-200 group-hover:text-[var(--color-primary)]">
+      <div className="storefront-product-title relative z-20 mt-2 w-full text-center transition-colors duration-200 group-hover:text-[var(--color-primary)]">
         <h3 className="line-clamp-1 text-[0.78rem] font-bold leading-5 text-[var(--color-text)] sm:text-sm" dir="rtl">
           {arabicName}
         </h3>

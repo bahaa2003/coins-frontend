@@ -38,6 +38,14 @@ const writeSessionCache = ({ products, categories, lastLoadedAt }) => {
   }
 };
 
+const writeMediaSnapshotCache = ({ products, categories, lastLoadedAt = Date.now() }) => {
+  writeSessionCache({
+    products: Array.isArray(products) ? products : [],
+    categories: Array.isArray(categories) ? categories : [],
+    lastLoadedAt,
+  });
+};
+
 const clearSessionCache = () => {
   if (typeof window === 'undefined' || !window.sessionStorage) return;
   try {
@@ -172,6 +180,20 @@ const splitProductStatusUpdate = (currentProduct = {}, updates = {}) => {
 
 const hasOwnKeys = (value) => Object.keys(value || {}).length > 0;
 
+const getToggleFallbackSnapshot = (currentProduct = {}) => {
+  const currentStatus = String(currentProduct.status || '').trim().toLowerCase();
+  const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
+  const isActive = nextStatus === 'active';
+
+  return {
+    status: nextStatus,
+    isActive,
+    productStatus: isActive ? 'available' : 'unavailable',
+    isVisibleInStore: true,
+    showWhenUnavailable: !isActive,
+  };
+};
+
 const normalizeProductRecord = (product = {}, categories = mockCategories) => {
   const minimumOrderQty = asNumber(product.minimumOrderQty ?? product.minQty, 1);
   const maximumOrderQtyRaw = asNumber(product.maximumOrderQty ?? product.maxQty, 999);
@@ -214,6 +236,19 @@ const normalizeProductRecord = (product = {}, categories = mockCategories) => {
   const externalPricingMode = product.externalPricingMode
     || (syncPriceWithProvider ? 'use_supplier_price' : 'use_local_price');
   const rawPayload = product.rawPayload && typeof product.rawPayload === 'object' ? product.rawPayload : {};
+  const explicitProductStatus = String(product.productStatus || '').trim().toLowerCase();
+  const rawStatus = String(product.status || '').trim().toLowerCase();
+  const hasExplicitStatus = ['active', 'inactive'].includes(rawStatus);
+  const hasExplicitIsActive = product.isActive !== undefined && product.isActive !== null;
+  const normalizedStatus = hasExplicitStatus
+    ? rawStatus
+    : hasExplicitIsActive
+      ? (product.isActive === false ? 'inactive' : 'active')
+      : (explicitProductStatus === 'unavailable' ? 'inactive' : 'active');
+  const isStopped = normalizedStatus === 'inactive';
+  const resolvedProductStatus = String(product.productStatus || '').trim().toLowerCase() === 'unavailable' || isStopped
+    ? 'unavailable'
+    : 'available';
   const resolvedBasePrice = pickUsablePriceValue(
     product.basePriceCoins,
     product.basePrice,
@@ -242,10 +277,12 @@ const normalizeProductRecord = (product = {}, categories = mockCategories) => {
     basePrice: pickUsablePriceValue(product.basePrice, resolvedBasePrice),
     displayPrice: resolvedDisplayPrice,
     category: resolveCategoryId(product.category, categories),
-    status: product.status || 'active',
-    productStatus: product.productStatus || 'available',
-    isVisibleInStore: product.isVisibleInStore !== false,
-    showWhenUnavailable: Boolean(product.showWhenUnavailable),
+    status: normalizedStatus || 'active',
+    productStatus: resolvedProductStatus,
+    isVisibleInStore: true,
+    showWhenUnavailable: product.showWhenUnavailable !== undefined
+      ? Boolean(product.showWhenUnavailable)
+      : resolvedProductStatus === 'unavailable',
     enableSchedule: Boolean(product.enableSchedule),
     scheduledStartAt: product.scheduledStartAt || null,
     scheduledEndAt: product.scheduledEndAt || null,
@@ -296,20 +333,6 @@ const normalizeProductRecord = (product = {}, categories = mockCategories) => {
     normalized.lowStockThreshold = 0;
     normalized.hideWhenOutOfStock = false;
     normalized.showOutOfStockLabel = true;
-  }
-
-  // Final availability guard: when a product is marked "available",
-  // recover conflicting flags that can silently keep it hidden/unbuyable.
-  if (normalized.productStatus === 'available') {
-    normalized.status = 'active';
-    normalized.isVisibleInStore = true;
-    normalized.showWhenUnavailable = false;
-    normalized.pauseSales = false;
-    normalized.pauseReason = '';
-
-    if (normalized.trackInventory && normalized.stockQuantity <= 0) {
-      normalized.stockQuantity = Math.max(1, normalized.lowStockThreshold || 1);
-    }
   }
 
   return normalized;
@@ -542,13 +565,19 @@ const useMediaStore = create((set, get) => ({
         );
 
         const created = await apiClient.products.create(newProduct);
-        set((state) => ({
-          products: [
+        set((state) => {
+          const nextProducts = [
             ...state.products,
             normalizeProductRecord(mergeSavedProductSnapshot(newProduct, created || {}), state.categories),
-          ],
-          lastLoadedAt: Date.now(),
-        }));
+          ];
+          const loadedAt = Date.now();
+          writeMediaSnapshotCache({ products: nextProducts, categories: state.categories, lastLoadedAt: loadedAt });
+
+          return {
+            products: nextProducts,
+            lastLoadedAt: loadedAt,
+          };
+        });
         return created || newProduct;
       },
 
@@ -575,7 +604,7 @@ const useMediaStore = create((set, get) => ({
 
         if (statusChanged) {
           const toggled = await apiClient.products.toggleStatus(id);
-          nextSnapshot = mergeSavedProductSnapshot(nextSnapshot, toggled || {});
+          nextSnapshot = mergeSavedProductSnapshot(nextSnapshot, toggled || getToggleFallbackSnapshot(current));
         }
 
         const normalizedProduct = normalizeProductRecord(
@@ -583,12 +612,18 @@ const useMediaStore = create((set, get) => ({
           categories
         );
 
-        set((state) => ({
-          products: state.products.map((p) => (
+        set((state) => {
+          const nextProducts = state.products.map((p) => (
             p.id === id ? normalizedProduct : p
-          )),
-          lastLoadedAt: Date.now(),
-        }));
+          ));
+          const loadedAt = Date.now();
+          writeMediaSnapshotCache({ products: nextProducts, categories: state.categories, lastLoadedAt: loadedAt });
+
+          return {
+            products: nextProducts,
+            lastLoadedAt: loadedAt,
+          };
+        });
 
         return normalizedProduct;
       },
@@ -603,26 +638,38 @@ const useMediaStore = create((set, get) => ({
 
         const toggled = await apiClient.products.toggleStatus(id);
         const normalizedProduct = normalizeProductRecord(
-          mergeSavedProductSnapshot(current, toggled || {}),
+          mergeSavedProductSnapshot(current, toggled || getToggleFallbackSnapshot(current)),
           categories
         );
 
-        set((state) => ({
-          products: state.products.map((p) => (
+        set((state) => {
+          const nextProducts = state.products.map((p) => (
             p.id === id ? normalizedProduct : p
-          )),
-          lastLoadedAt: Date.now(),
-        }));
+          ));
+          const loadedAt = Date.now();
+          writeMediaSnapshotCache({ products: nextProducts, categories: state.categories, lastLoadedAt: loadedAt });
+
+          return {
+            products: nextProducts,
+            lastLoadedAt: loadedAt,
+          };
+        });
 
         return normalizedProduct;
       },
 
       deleteProduct: (id) => {
         apiClient.products.delete(id).then(() => {
-          set((state) => ({
-            products: state.products.filter((p) => p.id !== id),
-            lastLoadedAt: Date.now(),
-          }));
+          set((state) => {
+            const nextProducts = state.products.filter((p) => p.id !== id);
+            const loadedAt = Date.now();
+            writeMediaSnapshotCache({ products: nextProducts, categories: state.categories, lastLoadedAt: loadedAt });
+
+            return {
+              products: nextProducts,
+              lastLoadedAt: loadedAt,
+            };
+          });
         });
       },
 
@@ -636,10 +683,16 @@ const useMediaStore = create((set, get) => ({
         const created = await apiClient.categories.create(newCategory);
         const nextCategory = created || newCategory;
 
-        set((state) => ({
-          categories: [...(Array.isArray(state.categories) ? state.categories : []), nextCategory],
-          lastLoadedAt: Date.now(),
-        }));
+        set((state) => {
+          const nextCategories = [...(Array.isArray(state.categories) ? state.categories : []), nextCategory];
+          const loadedAt = Date.now();
+          writeMediaSnapshotCache({ products: state.products, categories: nextCategories, lastLoadedAt: loadedAt });
+
+          return {
+            categories: nextCategories,
+            lastLoadedAt: loadedAt,
+          };
+        });
 
         return nextCategory;
       },
@@ -675,10 +728,14 @@ const useMediaStore = create((set, get) => ({
             return { ...product, category: normalizedId };
           });
 
+          const normalizedProducts = normalizeProducts(nextProducts, nextCategories);
+          const loadedAt = Date.now();
+          writeMediaSnapshotCache({ products: normalizedProducts, categories: nextCategories, lastLoadedAt: loadedAt });
+
           return {
             categories: nextCategories,
-            products: normalizeProducts(nextProducts, nextCategories),
-            lastLoadedAt: Date.now(),
+            products: normalizedProducts,
+            lastLoadedAt: loadedAt,
           };
         });
 
@@ -698,10 +755,15 @@ const useMediaStore = create((set, get) => ({
             return raw === id || raw === String(toDelete.name || '').trim() || raw === String(toDelete.nameAr || '').trim();
           };
 
+          const nextCategories = safeCategories.filter((c) => c.id !== id);
+          const nextProducts = safeProducts.filter((p) => !shouldDeleteProduct(p));
+          const loadedAt = Date.now();
+          writeMediaSnapshotCache({ products: nextProducts, categories: nextCategories, lastLoadedAt: loadedAt });
+
           return {
-            categories: safeCategories.filter((c) => c.id !== id),
-            products: safeProducts.filter((p) => !shouldDeleteProduct(p)),
-            lastLoadedAt: Date.now(),
+            categories: nextCategories,
+            products: nextProducts,
+            lastLoadedAt: loadedAt,
           };
         });
 

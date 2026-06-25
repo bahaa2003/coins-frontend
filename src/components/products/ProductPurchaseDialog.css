@@ -3,9 +3,14 @@
   inset: 0;
   z-index: 120;
   display: grid;
-  align-items: center;
-  justify-items: center;
-  padding: 0.85rem;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100svh;
+  place-items: center;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  padding: max(0.85rem, env(safe-area-inset-top)) max(0.85rem, env(safe-area-inset-right)) max(0.85rem, env(safe-area-inset-bottom)) max(0.85rem, env(safe-area-inset-left));
+  touch-action: none;
   color: #f8fbff;
 }
 
@@ -22,8 +27,10 @@
   position: relative;
   isolation: isolate;
   width: min(100%, 22.5rem);
-  max-height: min(92svh, 48rem);
+  max-height: min(calc(100dvh - 1.7rem), 48rem);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   border: 1px solid rgb(148 163 184 / 0.18);
   border-radius: 1.45rem;
   background: linear-gradient(180deg, rgb(11 24 30 / 0.98), rgb(6 14 18 / 0.98));
@@ -91,6 +98,12 @@
   width: 82%;
   height: 82%;
   object-fit: contain;
+}
+
+.purchase-dialog-image.is-unavailable img,
+.purchase-dialog-image.is-unavailable svg {
+  opacity: 0.62;
+  filter: grayscale(0.2) brightness(0.62);
 }
 
 .purchase-dialog-description {
@@ -361,6 +374,7 @@
 }
 
 .purchase-dialog-primary:disabled {
+  cursor: not-allowed;
   opacity: 0.52;
 }
 

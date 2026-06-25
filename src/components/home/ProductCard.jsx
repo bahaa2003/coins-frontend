@@ -1,7 +1,8 @@
 import React from 'react';
 import { cn } from '../ui/Button';
 import { resolveImageUrl } from '../../utils/imageUrl';
-import coinsImage from '../../assets/عملات.webp';
+import coinsImage from '../../assets/logo.webp';
+import UnavailableLockOverlay from '../products/UnavailableLockOverlay';
 
 const ProductCard = ({
   product,
@@ -14,9 +15,13 @@ const ProductCard = ({
 }) => {
   const productName = product.displayName;
   const isUnavailable = product.storefrontStatus?.isPurchasable === false;
+  const unavailableLabel = product.storefrontStatus?.badgeLabel || (isRTL ? 'غير متاح' : 'Unavailable');
 
   return (
-    <article className="group flex flex-col">
+    <article className={cn('group relative isolate flex flex-col', isUnavailable && 'cursor-not-allowed')}>
+      {isUnavailable ? (
+        <span className="pointer-events-none absolute inset-0 z-10 rounded-[1rem] bg-black/38" aria-hidden="true" />
+      ) : null}
       <div className="relative overflow-hidden rounded-[1rem]">
         <img
           src={product.image ? resolveImageUrl(product.image) : coinsImage}
@@ -27,15 +32,13 @@ const ProductCard = ({
           )}
         />
         {isUnavailable && (
-          <div className="absolute inset-0 grid place-items-center bg-black/22 px-2">
-            <span className="rounded-full border border-white/22 bg-black/58 px-3 py-1.5 text-xs font-black text-white shadow-[0_10px_28px_-18px_rgb(0_0_0/0.9)] backdrop-blur-md">
-              {isRTL ? 'غير متاح' : 'Unavailable'}
-            </span>
+          <div className="absolute inset-0 z-20 bg-black/22 px-2 pt-2">
+            <UnavailableLockOverlay label={unavailableLabel} size="md" />
           </div>
         )}
       </div>
 
-      <h3 className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-[var(--color-text)] text-center">
+      <h3 className="relative z-20 mt-2 line-clamp-2 text-center text-xs font-semibold leading-5 text-[var(--color-text)]">
         {productName}
       </h3>
     </article>

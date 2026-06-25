@@ -10,6 +10,7 @@ import {
   getTargetOrderStatusVariant,
   normalizeTargetOrderStatus,
 } from '../../utils/targetOrders';
+import { isSiteWalletPaymentMethod } from '../../utils/paymentSettings';
 
 const copyText = (value) => {
   const text = String(value || '').trim();
@@ -88,9 +89,20 @@ const TargetOrderDetailsModal = ({
   const status = normalizeTargetOrderStatus(order.status);
   const appName = order.appNameSnapshot || order.productName || order.app?.name || 'طلب تارجت';
   const accountId = order.senderId || order.transferFromId;
-  const targetAccountId = order.targetAccountIdSnapshot || order.targetAccountId || order.receivingAccountId || order.app?.targetAccountId || '';
+  const targetAccountId = order.targetAccountIdSnapshot
+    || order.targetAccountId
+    || order.receivingAccountId
+    || order.recipientAccountId
+    || order.targetRecipientId
+    || order.receivingAccount
+    || order.targetAccount
+    || order.destinationAccountId
+    || order.app?.targetAccountId
+    || order.app?.receivingAccountId
+    || '';
   const transferNumber = order.transferNumber || order.paymentAccount;
   const transactionNumber = order.transactionNumber || order.transactionId || order.paymentReference;
+  const isSiteWallet = isSiteWalletPaymentMethod(order.paymentMethodId || order.paymentMethod || order.paymentMethodName);
   const rejectionReason = order.rejectionReason || order.adminNotes || '';
 
   return (
@@ -140,7 +152,7 @@ const TargetOrderDetailsModal = ({
           <DetailItem icon={Hash} label="ايدي المستلم للتارجت" value={targetAccountId} copyable />
           <DetailItem icon={Hash} label="معرّف الحساب" value={accountId} copyable />
           <DetailItem icon={CreditCard} label="طريقة الدفع" value={order.paymentMethod || order.paymentMethodName} />
-          <DetailItem icon={Copy} label="رقم التحويل" value={transferNumber} copyable />
+          {!isSiteWallet ? <DetailItem icon={Copy} label="رقم التحويل" value={transferNumber} copyable /> : null}
           <DetailItem icon={Hash} label="رقم العملية" value={transactionNumber} copyable />
           <DetailItem icon={CalendarClock} label="آخر تحديث" value={formatDateTime(order.updatedAt || order.reviewedAt || order.createdAt, 'en-US')} />
         </div>

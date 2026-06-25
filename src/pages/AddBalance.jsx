@@ -118,6 +118,8 @@ const AddBalance = () => {
     const currentBalance = Number(user?.walletBalance ?? user?.coins ?? user?.balance ?? 0);
     const currentCurrency = String(user?.currency || 'USD').toUpperCase();
     const balanceDisplayValue = formatWalletNumber(currentBalance, false, { maximumFractionDigits: 3 });
+    const debtLimitValue = Number(user?.creditLimit ?? 0);
+    const debtLimitDisplayValue = formatWalletNumber(debtLimitValue, false, { maximumFractionDigits: 3 });
     const isNegativeBalance = currentBalance < 0;
 
     const paymentGroups = useMemo(
@@ -185,6 +187,12 @@ const AddBalance = () => {
                                     <span className="rounded-full border border-[#1d95a8]/24 bg-white/80 px-1.5 py-0.5 text-[9px] font-black text-[#0b6f83] dark:bg-cyan-950/30 dark:text-cyan-200">
                                         {currentCurrency}
                                     </span>
+                                </div>
+                                <div className={`mt-1 flex flex-wrap items-center gap-1 text-[10px] font-bold text-[#0b6f83]/70 dark:text-cyan-200/70 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+                                    <span>{isRTL ? 'حد الدين' : 'Debt limit'}</span>
+                                    <strong className="text-[#0b6f83] dark:text-cyan-100" dir="ltr">
+                                        {debtLimitDisplayValue} {currentCurrency}
+                                    </strong>
                                 </div>
                             </div>
                         </div>

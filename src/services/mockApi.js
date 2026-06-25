@@ -1008,7 +1008,8 @@ const mockApi = {
         ...currentProduct,
         status: nextStatus,
         productStatus: nextStatus === 'active' ? 'available' : 'unavailable',
-        isVisibleInStore: nextStatus === 'active',
+        isVisibleInStore: true,
+        showWhenUnavailable: nextStatus !== 'active',
       });
 
       db.state.products[index] = toggledProduct;
@@ -1294,6 +1295,75 @@ const mockApi = {
           return allOrders.filter(o => o.userId === userId);
       }
       return allOrders; // Admin sees all
+    },
+
+    listPaginated: async ({ page = 1, limit = 100, status, search, userId, startDate, endDate } = {}) => {
+      await new Promise(resolve => setTimeout(resolve, DELAY));
+      const db = getDB('order-storage', { state: { orders: mockOrders } });
+      const allOrders = db.state.orders || mockOrders;
+      const normalizedStatus = String(status || '').trim().toLowerCase();
+      const term = String(search || '').trim().toLowerCase();
+      const normalizedUserId = String(userId || '').trim();
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      if (end && /^\d{4}-\d{2}-\d{2}$/.test(String(endDate))) end.setHours(23, 59, 59, 999);
+
+      const filteredOrders = allOrders
+        .filter((order) => {
+          if (normalizedStatus && normalizedStatus !== 'all' && String(order?.status || '').toLowerCase() !== normalizedStatus) {
+            return false;
+          }
+
+          if (normalizedUserId && String(order?.userId || order?.customerId || '').trim() !== normalizedUserId) {
+            return false;
+          }
+
+          const orderDate = new Date(order?.createdAt || order?.date || order?.updatedAt || 0);
+          if (start && (Number.isNaN(orderDate.getTime()) || orderDate < start)) return false;
+          if (end && (Number.isNaN(orderDate.getTime()) || orderDate > end)) return false;
+
+          if (term) {
+            const searchableText = [
+              order?.id,
+              order?._id,
+              order?.orderNumber,
+              order?.siteOrderNumber,
+              order?.internalOrderNumber,
+              order?.supplierOrderNumber,
+              order?.externalOrderId,
+              order?.providerOrderId,
+              order?.playerId,
+              order?.uid,
+              order?.username,
+              order?.userId,
+              order?.customerId,
+              order?.userName,
+              order?.customerName,
+              order?.productName,
+              order?.productTitle,
+            ].map((value) => String(value || '').toLowerCase()).join(' ');
+            if (!searchableText.includes(term)) return false;
+          }
+
+          return true;
+        })
+        .sort((left, right) => {
+          const leftDate = new Date(left?.createdAt || left?.date || 0).getTime();
+          const rightDate = new Date(right?.createdAt || right?.date || 0).getTime();
+          return (Number.isNaN(rightDate) ? 0 : rightDate) - (Number.isNaN(leftDate) ? 0 : leftDate);
+        });
+
+      const pageNumber = Math.max(1, Number(page) || 1);
+      const pageSize = Math.max(1, Number(limit) || 100);
+      const total = filteredOrders.length;
+      const pages = Math.max(1, Math.ceil(total / pageSize));
+      const safePage = Math.min(pageNumber, pages);
+      const startIndex = (safePage - 1) * pageSize;
+
+      return {
+        orders: filteredOrders.slice(startIndex, startIndex + pageSize),
+        pagination: { page: safePage, limit: pageSize, total, pages },
+      };
     },
 
     getById: async (orderId, userId = null) => {
@@ -2224,8 +2294,8 @@ const mockApi = {
       const app = {
         id: `target-app-${Date.now()}`,
         name: payload.name || 'Target App',
-        targetAccountId: String(payload.targetAccountId || payload.receivingAccountId || '').trim(),
-        receivingAccountId: String(payload.receivingAccountId || payload.targetAccountId || '').trim(),
+        targetAccountId: String(payload.targetAccountId || payload.receivingAccountId || payload.receiverAccountId || payload.recipientAccountId || payload.targetRecipientId || payload.receivingAccount || payload.targetAccount || payload.destinationAccountId || payload.accountId || payload.accountNumber || '').trim(),
+        receivingAccountId: String(payload.receivingAccountId || payload.targetAccountId || payload.receiverAccountId || payload.recipientAccountId || payload.targetRecipientId || payload.receivingAccount || payload.targetAccount || payload.destinationAccountId || payload.accountId || payload.accountNumber || '').trim(),
         unitPrice: Number(payload.unitPrice || 0),
         image: payload.imagePreview || (typeof payload.image === 'string' ? payload.image : payload.image?.preview || ''),
         allowedPaymentMethods: payload.allowedPaymentMethods || payload.paymentMethodIds || [],
@@ -2300,8 +2370,8 @@ const mockApi = {
         userEmail: readValue('userEmail'),
         appId,
         appNameSnapshot: app.name || readValue('productName') || '',
-        targetAccountIdSnapshot: app.targetAccountId || app.receivingAccountId || readValue('targetAccountIdSnapshot') || '',
-        targetAccountId: app.targetAccountId || app.receivingAccountId || readValue('targetAccountIdSnapshot') || '',
+        targetAccountIdSnapshot: app.targetAccountId || app.receivingAccountId || app.receiverAccountId || app.recipientAccountId || app.targetRecipientId || app.receivingAccount || app.targetAccount || app.destinationAccountId || readValue('targetAccountIdSnapshot') || '',
+        targetAccountId: app.targetAccountId || app.receivingAccountId || app.receiverAccountId || app.recipientAccountId || app.targetRecipientId || app.receivingAccount || app.targetAccount || app.destinationAccountId || readValue('targetAccountIdSnapshot') || '',
         coinAmount,
         quantity: coinAmount,
         unitPriceSnapshot: unitPrice,

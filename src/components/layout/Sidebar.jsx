@@ -4,6 +4,7 @@ import {
   Activity,
   Banknote,
   Boxes,
+  ChevronDown,
   ChevronLeft,
   Check,
   ClipboardCheck,
@@ -77,6 +78,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [copiedUserId, setCopiedUserId] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState({});
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const { dir } = useLanguage();
@@ -133,6 +135,14 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     closeSidebarOnMobile();
   };
 
+  const isSectionOpen = (sectionKey) => collapsedSections[sectionKey] !== true;
+  const toggleSidebarSection = (sectionKey) => {
+    setCollapsedSections((current) => ({
+      ...current,
+      [sectionKey]: current[sectionKey] !== true,
+    }));
+  };
+
   const navItems = [
     {
       icon: House,
@@ -141,26 +151,28 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
       roles: ['customer', 'admin', ...SUPERVISOR_ROLES]
     },
     {
+      icon: Gauge,
+      label: t('sidebar.adminDashboard', { defaultValue: dir === 'rtl' ? 'لوحة التحكم' : 'Dashboard' }),
+      path: '/admin/dashboard',
+      roles: ['admin', 'super_admin'],
+      section: 'admin',
+    },
+    {
       icon: Landmark,
       label: t('sidebar.adminWallet', { defaultValue: dir === 'rtl' ? 'محفظة الأدمن' : 'Admin Wallet' }),
       path: '/admin/wallet',
       roles: ADMIN_NAV_ROLES,
       permission: PERMISSIONS.ADMIN_WALLET,
-    },
-    {
-      icon: Gauge,
-      label: t('sidebar.adminDashboard', { defaultValue: dir === 'rtl' ? 'لوحة تحكم الأدمن' : 'Admin Dashboard' }),
-      path: '/admin/dashboard',
-      roles: ['admin', 'super_admin'],
+      section: 'admin',
     },
     { icon: IdCard, label: t('sidebar.myAccount', { defaultValue: dir === 'rtl' ? 'حسابي' : 'My Account' }), path: '/account', roles: ['admin', 'customer', ...SUPERVISOR_ROLES] },
     { icon: LockKeyhole, label: t('sidebar.accountProtection', { defaultValue: dir === 'rtl' ? 'حماية الحساب' : 'Account Security' }), path: '/account-security', roles: ['admin', 'customer', ...SUPERVISOR_ROLES] },
     { icon: Wallet, label: t('sidebar.wallet'), path: '/wallet', roles: ['customer'] },
     {
       icon: ReceiptText,
-      label: t('header.orders', { defaultValue: dir === 'rtl' ? 'طلباتي' : 'My Orders' }),
+      label: t('sidebar.myOrders', { defaultValue: dir === 'rtl' ? 'طلباتي' : 'My Orders' }),
       path: '/orders',
-      roles: ['customer']
+      roles: ['customer', 'admin', ...SUPERVISOR_ROLES]
     },
     { icon: Target, label: 'بيع التارجت', path: '/buy-target', roles: ['customer'] },
     {
@@ -171,24 +183,25 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
       visible: (currentUser) => currentUser?.isApiEnabled === true,
     },
     { icon: Code2, label: dir === 'rtl' ? 'تم الإنشاء بواسطة' : 'Created By', path: '/created-by', roles: ['customer'] },
-    { icon: UsersRound, label: t('sidebar.users'), path: '/admin/users', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_USERS },
-    { icon: UserCog, label: t('sidebar.supervisors'), path: '/admin/supervisors', roles: ['admin'] },
-    { icon: Activity, label: 'مراقبة المشرفين', path: '/admin/supervisor-monitoring', roles: ['admin'] },
-    { icon: FolderKanban, label: t('sidebar.groupsManager'), path: '/admin/groups', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_GROUPS },
-    { icon: Boxes, label: t('sidebar.productsManager'), path: '/admin/products', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_PRODUCTS },
+    { icon: UsersRound, label: t('sidebar.users'), path: '/admin/users', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_USERS, section: 'admin' },
+    { icon: UserCog, label: t('sidebar.supervisors'), path: '/admin/supervisors', roles: ['admin'], section: 'admin' },
+    { icon: Activity, label: 'مراقبة المشرفين', path: '/admin/supervisor-monitoring', roles: ['admin'], section: 'admin' },
+    { icon: FolderKanban, label: t('sidebar.groupsManager'), path: '/admin/groups', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_GROUPS, section: 'admin' },
+    { icon: Boxes, label: t('sidebar.productsManager'), path: '/admin/products', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_PRODUCTS, section: 'admin' },
     {
       icon: ClipboardCheck,
       label: t('sidebar.ordersManager', { defaultValue: dir === 'rtl' ? 'إدارة الطلبات' : 'Orders Manager' }),
       path: '/admin/orders',
       roles: ADMIN_NAV_ROLES,
       permission: PERMISSIONS.ADMIN_ORDERS,
+      section: 'admin',
     },
-    { icon: Target, label: 'طلبات التارجت', path: '/admin/target-requests', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_TARGET_REQUESTS },
-    { icon: Truck, label: t('sidebar.suppliersManager'), path: '/admin/suppliers', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_SUPPLIERS },
-    { icon: Banknote, label: t('sidebar.paymentsManager'), path: '/admin/payments', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_PAYMENTS },
-    { icon: CreditCard, label: t('sidebar.paymentMethods'), path: '/admin/payment-methods', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_PAYMENT_METHODS },
-    { icon: MessageCircle, label: 'تكامل الواتساب', path: '/admin/whatsapp', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_WHATSAPP },
-    { icon: Coins, label: t('sidebar.currencies'), path: '/admin/currencies', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_CURRENCIES },
+    { icon: Target, label: 'طلبات التارجت', path: '/admin/target-requests', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_TARGET_REQUESTS, section: 'admin' },
+    { icon: Truck, label: t('sidebar.suppliersManager'), path: '/admin/suppliers', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_SUPPLIERS, section: 'admin' },
+    { icon: Banknote, label: t('sidebar.paymentsManager'), path: '/admin/payments', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_PAYMENTS, section: 'admin' },
+    { icon: CreditCard, label: t('sidebar.paymentMethods'), path: '/admin/payment-methods', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_PAYMENT_METHODS, section: 'admin' },
+    { icon: MessageCircle, label: 'تكامل الواتساب', path: '/admin/whatsapp', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_WHATSAPP, section: 'admin' },
+    { icon: Coins, label: t('sidebar.currencies'), path: '/admin/currencies', roles: ADMIN_NAV_ROLES, permission: PERMISSIONS.ADMIN_CURRENCIES, section: 'admin' },
     {
       icon: Headset,
       label: t('sidebar.contactUs', { defaultValue: 'اتصل بنا' }),
@@ -204,6 +217,20 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     && hasPermission(user, item.permission)
     && (typeof item.visible !== 'function' || item.visible(user))
   ));
+  const accountNavItems = filteredNavItems.filter((item) => item.section !== 'admin');
+  const adminNavItems = filteredNavItems.filter((item) => item.section === 'admin');
+  const sidebarSections = [
+    {
+      key: 'account',
+      label: t('sidebar.accountSection', { defaultValue: dir === 'rtl' ? 'الحساب' : 'Account' }),
+      items: accountNavItems,
+    },
+    {
+      key: 'admin',
+      label: t('sidebar.adminSection', { defaultValue: dir === 'rtl' ? 'الإدارة' : 'Administration' }),
+      items: adminNavItems,
+    },
+  ].filter((section) => section.items.length > 0);
   const showWalletCard = String(user?.role || '').toLowerCase() === 'customer' && isExpanded;
   const isAdmin = String(user?.role || '').toLowerCase() === 'admin';
   const userDisplayName = user?.name || user?.email || (dir === 'rtl' ? 'حسابي' : 'My Account');
@@ -212,11 +239,54 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     ? (dir === 'rtl' ? 'مدير المنصة' : 'Platform Admin')
     : (dir === 'rtl' ? 'عضو المتجر' : 'Store Member');
 
+  const renderNavItem = (item) => (
+    item.isExternal ? (
+      <button
+        key={item.path}
+        type="button"
+        onClick={item.onClick}
+        className={cn(
+          'coins-sidebar-nav-item group relative flex w-full items-center gap-2 overflow-hidden px-2.5 py-1.5 text-[var(--color-text-secondary)] transition-all',
+          !isExpanded && 'justify-center'
+        )}
+      >
+        <span className="coins-sidebar-icon-bubble">
+          <item.icon className="h-5 w-5" strokeWidth={2.15} />
+        </span>
+        {isExpanded && <span className="truncate text-[0.8rem] font-semibold">{item.label}</span>}
+      </button>
+    ) : (
+      <NavLink
+        key={item.path}
+        to={item.path}
+        onClick={closeSidebarOnMobile}
+        className={({ isActive }) =>
+          cn(
+            'coins-sidebar-nav-item group relative flex items-center gap-2 overflow-hidden px-2.5 py-1.5 transition-all',
+            !isExpanded && 'justify-center',
+            isActive
+              ? 'is-active text-[var(--color-text)]'
+              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+          )
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <span className={cn('coins-sidebar-icon-bubble', isActive && 'is-active')}>
+              <item.icon className="h-5 w-5" strokeWidth={2.15} />
+            </span>
+            {isExpanded && <span className="truncate text-[0.8rem] font-semibold">{item.label}</span>}
+          </>
+        )}
+      </NavLink>
+    )
+  );
+
   return (
     <>
       {isMobile && isOpen && (
         <div
-          className="fixed inset-0 z-[80] bg-black/72 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] bg-black/72 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -239,7 +309,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
           }
         }}
         className={cn(
-          'fixed top-4 z-[90] h-[calc(100vh-4rem)] overflow-hidden',
+          'fixed top-4 z-[70] h-[calc(100vh-4rem)] overflow-hidden',
           dir === 'rtl' ? 'right-4' : 'left-4',
           isMobile && !isOpen && 'hidden'
         )}
@@ -293,35 +363,40 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
                 </div>
 
                 <div className="coins-sidebar-user-card mt-2 px-2.5 py-2">
-                  {userId ? (
-                    <button
-                      type="button"
-                      onClick={handleCopyUserId}
-                      className={cn(
-                        'coins-sidebar-id-chip',
-                        dir === 'rtl' ? 'right-4' : 'left-4'
-                      )}
-                      title={copiedUserId ? 'تم نسخ ID المستخدم' : 'اضغط لنسخ ID المستخدم'}
-                      aria-label={copiedUserId ? 'تم نسخ ID المستخدم' : 'نسخ ID المستخدم'}
-                    >
-                      {copiedUserId ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
-                      <span className="truncate">{copiedUserId ? 'تم النسخ' : `...${userId.slice(-8)}`}</span>
-                    </button>
-                  ) : null}
-
                   <div className="flex items-center gap-2.5">
-                    <div className="flex shrink-0 flex-col items-center">
-                      <button
-                        type="button"
-                        onClick={handleOpenMyAccount}
-                        className="coins-sidebar-avatar h-9 w-9"
-                        aria-label={dir === 'rtl' ? 'فتح الحساب' : 'Open account'}
-                      >
-                        <img
-                          src={userAvatar}
-                          alt={userDisplayName}
+                    <div className="relative flex shrink-0 flex-col items-center">
+                      {userId ? (
+                        <button
+                          type="button"
+                          onClick={handleCopyUserId}
+                          className="coins-sidebar-id-chip absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2"
+                          title={copiedUserId ? 'تم نسخ ID المستخدم' : 'اضغط لنسخ ID المستخدم'}
+                          aria-label={copiedUserId ? 'تم نسخ ID المستخدم' : 'نسخ ID المستخدم'}
+                        >
+                          {copiedUserId ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
+                          <span className="truncate">{copiedUserId ? 'تم النسخ' : `...${userId.slice(-8)}`}</span>
+                        </button>
+                      ) : null}
+
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={handleOpenMyAccount}
+                          className="coins-sidebar-avatar h-9 w-9"
+                          aria-label={dir === 'rtl' ? 'فتح الحساب' : 'Open account'}
+                        >
+                          <img
+                            src={userAvatar}
+                            alt={userDisplayName}
+                          />
+                        </button>
+                        <span
+                          className="absolute -bottom-0.5 -right-0.5 z-10 h-3.5 w-3.5 rounded-full border-2 border-[color:rgb(var(--color-card-rgb)/0.98)] bg-emerald-400 shadow-[0_0_0_3px_rgb(16_185_129/0.16),0_0_14px_rgb(16_185_129/0.76)]"
+                          role="status"
+                          aria-label={dir === 'rtl' ? 'متصل الآن' : 'Online now'}
+                          title={dir === 'rtl' ? 'متصل الآن' : 'Online now'}
                         />
-                      </button>
+                      </div>
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -352,48 +427,35 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
               />
             )}
 
-            <div className="space-y-1.5">
-              {filteredNavItems.map((item) => (
-                item.isExternal ? (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={item.onClick}
-                    className={cn(
-                      'coins-sidebar-nav-item group relative flex w-full items-center gap-2 overflow-hidden px-2.5 py-1.5 text-[var(--color-text-secondary)] transition-all',
-                      !isExpanded && 'justify-center'
-                    )}
-                  >
-                    <span className="coins-sidebar-icon-bubble">
-                      <item.icon className="h-5 w-5" strokeWidth={2.15} />
-                    </span>
-                    {isExpanded && <span className="truncate text-[0.8rem] font-semibold">{item.label}</span>}
-                  </button>
-                ) : (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={closeSidebarOnMobile}
-                    className={({ isActive }) =>
-                      cn(
-                        'coins-sidebar-nav-item group relative flex items-center gap-2 overflow-hidden px-2.5 py-1.5 transition-all',
-                        !isExpanded && 'justify-center',
-                        isActive
-                          ? 'is-active text-[var(--color-text)]'
-                          : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-                      )
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span className={cn('coins-sidebar-icon-bubble', isActive && 'is-active')}>
-                          <item.icon className="h-5 w-5" strokeWidth={2.15} />
-                        </span>
-                        {isExpanded && <span className="truncate text-[0.8rem] font-semibold">{item.label}</span>}
-                      </>
-                    )}
-                  </NavLink>
-                )
+            <div className="space-y-3">
+              {sidebarSections.map((section, sectionIndex) => (
+                <div key={section.key} className="space-y-1.5">
+                  {isExpanded ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSidebarSection(section.key)}
+                      className="flex w-full items-center gap-2 rounded-xl px-2 pb-1 pt-1 text-[0.68rem] font-black text-[var(--color-muted)] transition-colors hover:bg-[color:rgb(var(--color-primary-rgb)/0.08)] hover:text-[var(--color-text)]"
+                      aria-expanded={isSectionOpen(section.key)}
+                      aria-controls={`sidebar-section-${section.key}`}
+                    >
+                      <span className="shrink-0">{section.label}</span>
+                      <span className="h-px flex-1 bg-[color:rgb(var(--color-border-rgb)/0.42)]" />
+                      <ChevronDown
+                        className={cn(
+                          'h-3.5 w-3.5 shrink-0 transition-transform',
+                          !isSectionOpen(section.key) && (dir === 'rtl' ? 'rotate-90' : '-rotate-90')
+                        )}
+                      />
+                    </button>
+                  ) : (
+                    sectionIndex > 0 && <div className="mx-auto my-2 h-px w-7 bg-[color:rgb(var(--color-border-rgb)/0.5)]" />
+                  )}
+                  {isSectionOpen(section.key) && (
+                    <div id={`sidebar-section-${section.key}`} className="space-y-1.5">
+                      {section.items.map(renderNavItem)}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>

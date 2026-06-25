@@ -41,6 +41,7 @@ const Account = () => {
   const { language } = useLanguage();
 
   const isEnglish = language === 'en';
+  const isArabic = !isEnglish;
   const text = useMemo(
     () =>
       isEnglish
@@ -567,6 +568,12 @@ const Account = () => {
                   event.currentTarget.src = fallbackAvatar;
                 }}
                 className="relative h-24 w-24 rounded-[1.7rem] border-2 border-white/85 object-cover shadow-[0_18px_42px_-24px_rgba(2,6,23,0.75)] dark:border-white/10"
+              />
+              <span
+                className="absolute -bottom-1 -right-1 z-10 h-5 w-5 rounded-full border-[3px] border-[color:rgb(var(--color-card-rgb)/0.98)] bg-emerald-400 shadow-[0_0_0_4px_rgb(16_185_129/0.14),0_0_18px_rgb(16_185_129/0.72)]"
+                role="status"
+                aria-label={isArabic ? 'متصل الآن' : 'Online now'}
+                title={isArabic ? 'متصل الآن' : 'Online now'}
               />
               <button
                 type="button"

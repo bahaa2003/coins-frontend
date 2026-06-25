@@ -212,6 +212,15 @@ const normalizeNotification = (item = {}) => {
   };
 };
 
+const toNotificationTime = (value) => {
+  const timestamp = new Date(value || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const sortNotificationsByNewest = (items = []) => (
+  [...items].sort((left, right) => toNotificationTime(right?.createdAt) - toNotificationTime(left?.createdAt))
+);
+
 const useNotificationStore = create((set, get) => ({
   notifications: [],
   isLoading: false,
@@ -237,7 +246,8 @@ const useNotificationStore = create((set, get) => ({
     });
 
     set((state) => ({
-      notifications: [next, ...state.notifications].slice(0, 30),
+      notifications: sortNotificationsByNewest([next, ...state.notifications]).slice(0, 30),
+      unreadCount: Number(state.unreadCount || 0) + 1,
     }));
   },
 
@@ -267,7 +277,7 @@ const useNotificationStore = create((set, get) => ({
     try {
       const items = await apiClient.notifications?.list?.();
       if (Array.isArray(items)) {
-        const nextNotifications = items.map(normalizeNotification).slice(0, 30);
+        const nextNotifications = sortNotificationsByNewest(items.map(normalizeNotification)).slice(0, 30);
         set({
           notifications: nextNotifications,
           unreadCount: nextNotifications.filter((item) => !item.read).length,

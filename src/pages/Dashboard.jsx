@@ -1,16 +1,21 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ShieldCheck, Target } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useMediaStore from '../store/useMediaStore';
 import useGroupStore from '../store/useGroupStore';
 import HeroSlider from '../components/home/HeroSlider';
 import CategoryCard from '../components/home/CategoryCard';
 import ProductSearchBar from '../components/products/ProductSearchBar';
+import ProductPurchaseDialog from '../components/products/ProductPurchaseDialog';
+import UnavailableLockOverlay from '../components/products/UnavailableLockOverlay';
 import slideOneHeroImage from '../assets/slide-1.webp';
 import slideTwoHeroImage from '../assets/slide-2.webp';
 import slideThreeHeroImage from '../assets/slide-3.webp';
+import targetBannerImage from '../assets/ترجتات.jpg';
+import coinsImage from '../assets/logo.webp';
+import { resolveImageUrl } from '../utils/imageUrl';
 import {
   createStorefrontCategories,
   createStorefrontProducts,
@@ -23,6 +28,7 @@ const Dashboard = () => {
   const groupsLastLoadedAt = useGroupStore((state) => state.groupsLastLoadedAt);
   const { i18n } = useTranslation();
   const navigate = useNavigate();
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const language = getStorefrontLanguage(i18n);
   const isTwoFactorEnabled = Boolean(user?.twoFactorEnabled ?? user?.isTwoFactorEnabled);
   const isCustomerUser = String(user?.role || '').trim().toLowerCase() === 'customer';
@@ -67,6 +73,57 @@ const Dashboard = () => {
     [storefrontCategories]
   );
 
+  const categoryChildrenByParent = useMemo(() => (
+    storefrontCategories.reduce((map, category) => {
+      const parentId = String(category?.parentCategory || '').trim();
+      if (!parentId) return map;
+      if (!map.has(parentId)) map.set(parentId, []);
+      map.get(parentId).push(category.id);
+      return map;
+    }, new Map())
+  ), [storefrontCategories]);
+
+  const collectCategoryIds = useCallback((categoryId) => {
+    const seen = new Set();
+    const stack = [String(categoryId || '').trim()].filter(Boolean);
+    while (stack.length) {
+      const currentId = stack.pop();
+      if (!currentId || seen.has(currentId)) continue;
+      seen.add(currentId);
+      (categoryChildrenByParent.get(currentId) || []).forEach((childId) => {
+        if (!seen.has(childId)) stack.push(childId);
+      });
+    }
+    return seen;
+  }, [categoryChildrenByParent]);
+
+  const bestSellingProducts = useMemo(() => {
+    const firstCategory = visibleHomepageCategories[0];
+    const secondCategory = visibleHomepageCategories[1];
+    const pickedIds = new Set();
+
+    const pickFromCategory = (category, limit) => {
+      if (!category) return [];
+      const categoryIds = collectCategoryIds(category.id);
+      const selected = [];
+
+      for (const product of storefrontProducts) {
+        if (selected.length >= limit) break;
+        if (!categoryIds.has(String(product?.category || '').trim())) continue;
+        if (pickedIds.has(product.id)) continue;
+        pickedIds.add(product.id);
+        selected.push(product);
+      }
+
+      return selected;
+    };
+
+    return [
+      ...pickFromCategory(firstCategory, 4),
+      ...pickFromCategory(secondCategory, 4),
+    ];
+  }, [collectCategoryIds, storefrontProducts, visibleHomepageCategories]);
+
   const handleCategorySelect = useCallback((categoryId) => {
     navigate(categoryId === 'all' ? '/products' : `/products?category=${encodeURIComponent(categoryId)}`);
   }, [navigate]);
@@ -76,6 +133,19 @@ const Dashboard = () => {
     if (product?.category) next.set('category', product.category);
     next.set('request', product.id);
     navigate(`/products?${next.toString()}`);
+  }, [navigate]);
+
+  const openPurchaseDialog = useCallback((product) => {
+    setSelectedProduct(product);
+  }, []);
+
+  const closePurchaseDialog = useCallback(() => {
+    setSelectedProduct(null);
+  }, []);
+
+  const viewCreatedOrder = useCallback((orderId) => {
+    setSelectedProduct(null);
+    navigate(`/orders/${encodeURIComponent(orderId)}`);
   }, [navigate]);
 
   return (
@@ -124,27 +194,92 @@ const Dashboard = () => {
         <div className="mx-auto w-full max-w-5xl px-0.5 sm:px-2">
           <Link
             to="/buy-target"
-            className="group relative mx-auto flex w-full max-w-2xl items-center overflow-hidden rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[linear-gradient(135deg,rgb(var(--color-primary-rgb)/0.18),rgb(var(--color-accent-rgb)/0.10),rgb(var(--color-card-rgb)/0.86))] px-3 py-3 text-start shadow-[0_18px_46px_-34px_rgb(var(--color-primary-rgb)/0.8)] transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.44)] hover:shadow-[0_22px_58px_-34px_rgb(var(--color-primary-rgb)/0.95)] sm:px-4"
+            className="group mx-auto block w-full max-w-3xl overflow-hidden rounded-[1.1rem] border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[color:rgb(var(--color-card-rgb)/0.72)] shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.72)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.42)] hover:shadow-[0_22px_54px_-36px_rgb(var(--color-primary-rgb)/0.9)]"
+            aria-label={language === 'ar' ? 'بيع تارجت' : 'Sell Target'}
           >
-            <span className="absolute inset-y-3 end-3 w-20 rounded-full bg-[radial-gradient(circle,rgb(var(--color-primary-rgb)/0.22),transparent_68%)] opacity-80 blur-xl transition-opacity group-hover:opacity-100" />
-
-            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:rgb(var(--color-primary-rgb)/0.28)] bg-[color:rgb(var(--color-primary-rgb)/0.14)] text-[var(--color-primary)] shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
-              <Target className="h-5 w-5" />
+            <span className="block overflow-hidden bg-black">
+              <img
+                src={targetBannerImage}
+                alt={language === 'ar' ? 'بيع تارجت' : 'Sell Target'}
+                className="block aspect-[2048/800] w-full object-cover transition-transform duration-500 group-hover:scale-[1.012]"
+                loading="lazy"
+              />
             </span>
-
-            <span className="relative min-w-0 flex-1 px-3">
-              <span className="block text-[0.98rem] font-black leading-6 text-[var(--color-text)]">
-                {language === 'ar' ? 'بيع تارجت من حسابك' : 'Sell Target from your account'}
+            <span className="block border-t border-[color:rgb(var(--color-primary-rgb)/0.16)] bg-[linear-gradient(180deg,rgb(var(--color-card-rgb)/0.9),rgb(var(--color-surface-rgb)/0.68))] px-3 py-2 text-center">
+              <span className="text-sm font-extrabold text-[var(--color-text)] sm:text-base">
+                {language === 'ar' ? 'بيع تارجت' : 'Sell Target'}
               </span>
-            </span>
-
-            <span className="relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[var(--color-primary)] px-3 text-[0.75rem] font-black text-[var(--color-primary-foreground)] shadow-[0_12px_24px_-18px_rgb(var(--color-primary-rgb)/0.9)]">
-              <span>{language === 'ar' ? 'تفاصيل' : 'Details'}</span>
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             </span>
           </Link>
         </div>
       ) : null}
+
+      {bestSellingProducts.length ? (
+        <section className="mx-auto w-full max-w-5xl space-y-3 px-0.5 sm:px-2" aria-labelledby="best-selling-title">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="best-selling-title" className="text-base font-black text-[var(--color-text)] sm:text-lg">
+              {language === 'ar' ? 'الأكثر مبيعا' : 'Best selling'}
+            </h2>
+            <Link to="/products" className="text-xs font-bold text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] sm:text-sm">
+              {language === 'ar' ? 'عرض الكل' : 'View all'}
+            </Link>
+          </div>
+
+          <div
+            className="scrollbar-hide flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-smooth pb-1 sm:gap-3"
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
+          >
+            {bestSellingProducts.map((product) => {
+              const productName = product.displayName || product.nameAr || product.name || '';
+              const imageSrc = product.image ? resolveImageUrl(product.image) : coinsImage;
+              const isUnavailable = product.storefrontStatus?.isPurchasable === false;
+              const unavailableLabel = product.storefrontStatus?.badgeLabel || (language === 'ar' ? 'غير متاح' : 'Unavailable');
+
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => {
+                    if (!isUnavailable) openPurchaseDialog(product);
+                  }}
+                  disabled={isUnavailable}
+                  className={`group relative isolate min-w-[38%] snap-start rounded-[1rem] border border-[color:rgb(var(--color-border-rgb)/0.7)] bg-[color:rgb(var(--color-card-rgb)/0.76)] p-2 text-center shadow-[0_14px_34px_-30px_rgb(var(--color-primary-rgb)/0.7)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.32)] min-[430px]:min-w-[30%] sm:min-w-[22%] lg:min-w-[17%] ${isUnavailable ? 'cursor-not-allowed hover:translate-y-0' : ''}`}
+                  aria-label={productName}
+                >
+                  {isUnavailable ? (
+                    <span className="pointer-events-none absolute inset-0 z-10 rounded-[1rem] bg-black/38" aria-hidden="true" />
+                  ) : null}
+                  <span className="relative block overflow-hidden rounded-[0.85rem] bg-[color:rgb(var(--color-surface-rgb)/0.72)]">
+                    <img
+                      src={imageSrc}
+                      alt={productName}
+                      className={`aspect-square w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04] ${isUnavailable ? 'brightness-[0.42] grayscale-[0.18]' : ''}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    {isUnavailable ? (
+                      <span className="absolute inset-0 z-20 bg-black/24 px-1.5 pt-2">
+                        <UnavailableLockOverlay label={unavailableLabel} size="sm" />
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="relative z-20 mt-2 line-clamp-2 block min-h-[2.35rem] text-[0.72rem] font-bold leading-5 text-[var(--color-text)] sm:text-xs">
+                    {productName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <ProductPurchaseDialog
+        isOpen={Boolean(selectedProduct)}
+        productId={selectedProduct?.id}
+        initialProduct={selectedProduct}
+        onClose={closePurchaseDialog}
+        onViewOrder={viewCreatedOrder}
+      />
 
     </div>
   );

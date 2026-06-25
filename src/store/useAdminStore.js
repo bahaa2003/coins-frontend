@@ -13,7 +13,7 @@ let hasFetchedAdminWalletsFromBackendThisSession = false;
 
 const USERS_CACHE_TTL = isRealProvider ? 15 * 1000 : 90 * 1000;
 const WALLETS_CACHE_TTL = isRealProvider ? 15 * 1000 : 60 * 1000;
-const USERS_PAGE_LIMIT = 20;
+const USERS_PAGE_LIMIT = 500;
 const USERS_DEFAULT_SORT_BY = 'walletBalance';
 const USERS_DEFAULT_SORT_ORDER = 'desc';
 let usersRequest = null;

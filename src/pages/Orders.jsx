@@ -32,6 +32,44 @@ import { formatCurrencyAmount } from '../utils/pricing';
 
 const ORDERS_PER_PAGE = 8;
 
+const normalizeSearchValue = (value) => String(value ?? '')
+  .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+  .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+  .trim()
+  .replace(/^#/, '')
+  .toLowerCase();
+
+const getOrderSearchText = (order = {}) => (
+  [
+    order?.searchIndex,
+    order?.id,
+    order?._id,
+    order?.orderNumber,
+    order?.siteOrderNumber,
+    order?.internalOrderNumber,
+    order?.supplierOrderNumber,
+    order?.externalOrderId,
+    order?.providerOrderId,
+    order?.userId,
+    order?.customerId,
+    order?.user?._id,
+    order?.user?.id,
+    order?.playerId,
+    order?.uid,
+    order?.username,
+    order?.customerInput,
+    order?.supplierRequestSnapshot?.orderId,
+    order?.supplierResponseSnapshot?.orderId,
+    order?.supplierResponseSnapshot?.data?.orderId,
+  ].map(normalizeSearchValue).filter(Boolean).join(' ')
+);
+
+const matchesOrderSearch = (order, searchTerm) => {
+  const normalizedSearchTerm = normalizeSearchValue(searchTerm);
+  if (!normalizedSearchTerm) return true;
+  return getOrderSearchText(order).includes(normalizedSearchTerm);
+};
+
 const SummaryCard = ({ icon: Icon, label, value, tone = 'sky' }) => {
   const tones = {
     sky: 'border-sky-400/28 bg-sky-500/8 text-sky-500',
@@ -86,15 +124,19 @@ const Orders = () => {
 
   const isArabic = String(i18n.resolvedLanguage || i18n.language || 'ar').toLowerCase().startsWith('ar');
   const locale = isArabic ? 'ar-EG' : 'en-US';
+  const currentUserId = String(user?.id || user?._id || user?.userId || '').trim();
+  const orderOwnerScopeId = currentUserId;
 
   useEffect(() => {
     let isMounted = true;
 
     const loadPage = async () => {
+      if (!orderOwnerScopeId) return;
+
       setIsLoading(true);
 
       await Promise.allSettled([
-        Promise.resolve(loadOrders(user?.id, { force: true })),
+        Promise.resolve(loadOrders(orderOwnerScopeId, { force: true })),
         Promise.resolve(loadProducts({ force: true })),
         Promise.resolve(loadCurrencies()),
       ]);
@@ -109,7 +151,7 @@ const Orders = () => {
     return () => {
       isMounted = false;
     };
-  }, [loadCurrencies, loadOrders, loadProducts, user?.id]);
+  }, [loadCurrencies, loadOrders, loadProducts, orderOwnerScopeId]);
 
   const enrichedOrders = useMemo(
     () => enrichOrders(orders, {
@@ -120,24 +162,41 @@ const Orders = () => {
     [orders, products, user, isArabic]
   );
 
+  const accountOrders = useMemo(
+    () => enrichedOrders.filter((order) => {
+      const ownerId = String(
+        order?.userId
+        || order?.customerId
+        || order?.user?._id
+        || order?.user?.id
+        || ''
+      ).trim();
+
+      return !ownerId || !currentUserId || ownerId === currentUserId;
+    }),
+    [currentUserId, enrichedOrders]
+  );
+
   const filteredOrders = useMemo(
     () => {
-      const baseFiltered = filterOrders(enrichedOrders, {
-        searchTerm,
+      const baseFiltered = filterOrders(accountOrders, {
+        searchTerm: '',
         statusFilter,
         typeFilter: 'all',
         dateFilter,
         sortOrder,
       });
 
+      const orderNumberFiltered = baseFiltered.filter((order) => matchesOrderSearch(order, searchTerm));
+
       if (dateFilter !== 'custom') {
-        return baseFiltered;
+        return orderNumberFiltered;
       }
 
       const startBoundary = customStartDate ? new Date(`${customStartDate}T00:00:00`) : null;
       const endBoundary = customEndDate ? new Date(`${customEndDate}T23:59:59.999`) : null;
 
-      return baseFiltered.filter((order) => {
+      return orderNumberFiltered.filter((order) => {
         const orderDate = new Date(order?.createdAt || 0);
         if (Number.isNaN(orderDate.getTime())) return false;
         if (startBoundary && orderDate < startBoundary) return false;
@@ -145,10 +204,11 @@ const Orders = () => {
         return true;
       });
     },
-    [customEndDate, customStartDate, dateFilter, enrichedOrders, searchTerm, sortOrder, statusFilter]
+    [accountOrders, customEndDate, customStartDate, dateFilter, searchTerm, sortOrder, statusFilter]
   );
 
   const summary = useMemo(() => summarizeOrders(filteredOrders), [filteredOrders]);
+  const accountSummary = useMemo(() => summarizeOrders(accountOrders), [accountOrders]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -188,8 +248,8 @@ const Orders = () => {
   }, [currencies, filteredOrders, locale, user?.currency]);
 
   const selectedOrder = useMemo(
-    () => enrichedOrders.find((order) => order.id === selectedOrderId) || null,
-    [enrichedOrders, selectedOrderId]
+    () => accountOrders.find((order) => order.id === selectedOrderId) || null,
+    [accountOrders, selectedOrderId]
   );
 
   useEffect(() => {
@@ -210,8 +270,9 @@ const Orders = () => {
     }
 
     setSelectedOrderId(orderIdFromQuery);
-    void getOrderById(orderIdFromQuery, user?.id).catch(() => {});
-  }, [getOrderById, routeOrderId, searchParams, user?.id]);
+    if (!orderOwnerScopeId) return;
+    void getOrderById(orderIdFromQuery, orderOwnerScopeId).catch(() => {});
+  }, [getOrderById, orderOwnerScopeId, routeOrderId, searchParams]);
 
   const formatCount = (value) => formatNumber(value, locale);
   const visibleStart = filteredOrders.length ? pageStartIndex + 1 : 0;
@@ -233,20 +294,20 @@ const Orders = () => {
               </span>
             </div>
               <h1 className="mt-3 text-3xl font-black leading-tight text-[var(--color-text)]">
-                {isArabic ? 'طلباتك' : 'Your Orders'}
+                {isArabic ? 'طلباتي' : 'My Orders'}
               </h1>
               <p className="mt-1 max-w-lg text-sm leading-6 text-[var(--color-text-secondary)]">
                 {isArabic
-                  ? 'عرض ومتابعة كل الطلبات، والوصول لتفاصيل الشحن من هنا.'
-                  : 'View and track all orders, and access shipping details from one place.'}
+                  ? 'عرض ومتابعة طلبات هذا الحساب، مع البحث برقم الطلب فقط.'
+                  : 'View and track this account orders, searchable by order number only.'}
               </p>
 
               <div className="mt-4 flex items-center gap-3">
                 <div className="inline-flex items-center justify-center rounded-full px-3 py-2 bg-[linear-gradient(90deg,var(--color-primary),#d4a42d)] text-white font-black text-base shadow-[0_10px_30px_-18px_rgb(var(--color-primary-rgb)/0.9)]">
-                  {formatCount(filteredOrders.length)}
+                  {formatCount(accountOrders.length)}
                 </div>
                 <div className="text-sm font-semibold text-[var(--color-text-secondary)]">
-                  {isArabic ? 'طلبات مطابقة' : 'matching orders'}
+                  {isArabic ? 'إجمالي الطلبات' : 'total orders'}
                 </div>
               </div>
           </div>
@@ -255,7 +316,7 @@ const Orders = () => {
             <SummaryCard
               icon={ShoppingCart}
               label={isArabic ? 'إجمالي الطلبات' : 'Total orders'}
-              value={formatCount(summary.total)}
+              value={formatCount(accountSummary.total)}
               tone="sky"
             />
             <SummaryCard
@@ -297,11 +358,11 @@ const Orders = () => {
         showDateFilter={false}
         resultCount={filteredOrders.length}
         searchPlaceholder={isArabic
-          ? 'ابحث باسم المنتج أو رقم الطلب'
-          : 'Search by product name or order number'}
+          ? 'ابحث برقم الطلب أو معرف المستخدم'
+          : 'Search by order number or user ID'}
         helperText={isArabic
-          ? 'اختار مدة البحث من تاريخ إلى تاريخ، أو اتركها فارغة لعرض كل الطلبات.'
-          : 'Choose a from-to date range, or leave it empty to show all orders.'}
+          ? 'ابحث برقم الطلب، معرف الحساب داخل الطلب، أو ID حسابك بالموقع.'
+          : 'Search by order number, in-order account ID, or your site user ID.'}
         customRange={{
           startDate: customStartDate,
           endDate: customEndDate,
@@ -330,7 +391,7 @@ const Orders = () => {
                   const nextParams = new URLSearchParams(searchParams);
                   nextParams.set('orderId', order.id);
                   setSearchParams(nextParams, { replace: true });
-                  void getOrderById(order.id, user?.id).catch(() => {});
+                  void getOrderById(order.id, orderOwnerScopeId).catch(() => {});
                 }}
               />
             ))}

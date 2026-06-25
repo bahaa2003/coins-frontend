@@ -1,0 +1,62 @@
+import React from 'react';
+import { cn } from '../ui/Button';
+import lockChainImage from '../../assets/قفل.PNG';
+
+const sizeClasses = {
+  xs: {
+    panel: 'rounded-[0.9rem]',
+    plaque: 'top-1 px-1.5 py-0.5 text-[8px] rounded-[0.45rem]',
+    image: 'left-1/2 top-[58%] h-[165%] w-[165%] -translate-x-1/2 -translate-y-1/2',
+  },
+  sm: {
+    panel: 'rounded-[0.85rem]',
+    plaque: 'top-2 px-3 py-1 text-[10px] rounded-[0.7rem]',
+    image: 'left-1/2 top-[58%] h-[180%] w-[180%] -translate-x-1/2 -translate-y-1/2',
+  },
+  md: {
+    panel: 'rounded-[1rem]',
+    plaque: 'top-2.5 px-4 py-1.5 text-xs sm:text-sm rounded-[0.8rem]',
+    image: 'left-1/2 top-[58%] h-[190%] w-[190%] -translate-x-1/2 -translate-y-1/2',
+  },
+  lg: {
+    panel: 'rounded-[1.4rem]',
+    plaque: 'top-3 px-5 py-2 text-sm sm:text-base rounded-[0.95rem]',
+    image: 'left-1/2 top-[58%] h-[200%] w-[200%] -translate-x-1/2 -translate-y-1/2',
+  },
+};
+
+const UnavailableLockOverlay = ({ label = 'غير متوفر', size = 'md', className }) => {
+  const styles = sizeClasses[size] || sizeClasses.md;
+
+  return (
+    <span
+      className={cn(
+        'pointer-events-none absolute inset-0 z-30 block overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_50%_28%,rgb(255_255_255/0.10),transparent_32%),linear-gradient(180deg,rgb(0_0_0/0.50),rgb(0_0_0/0.74))] shadow-[inset_0_1px_0_rgb(255_255_255/0.16),inset_0_-18px_30px_rgb(0_0_0/0.36)]',
+        styles.panel,
+        className
+      )}
+      aria-hidden="true"
+    >
+      <span
+        className={cn(
+          'absolute left-1/2 z-40 -translate-x-1/2 whitespace-nowrap border border-red-200/35 bg-[linear-gradient(180deg,#d9271f_0%,#8f1410_58%,#4b0907_100%)] font-black text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.32),inset_0_-8px_14px_rgb(0_0_0/0.3),0_8px_18px_-10px_rgb(0_0_0/0.95)] [text-shadow:0_2px_2px_rgb(0_0_0/0.72)]',
+          styles.plaque
+        )}
+      >
+        {label}
+      </span>
+
+      <img
+        src={lockChainImage}
+        alt=""
+        draggable="false"
+        className={cn(
+          'absolute z-50 max-w-none object-contain object-center drop-shadow-[0_18px_22px_rgb(0_0_0/0.72)]',
+          styles.image
+        )}
+      />
+    </span>
+  );
+};
+
+export default UnavailableLockOverlay;

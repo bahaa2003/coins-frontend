@@ -55,7 +55,7 @@ export function getProductStatus(product, language = 'ar') {
   const defaults = {
     productStatus: 'available',
     isVisibleInStore: true,
-    showWhenUnavailable: false,
+    showWhenUnavailable: true,
     enableSchedule: false,
     scheduledStartAt: null,
     scheduledEndAt: null,
@@ -70,6 +70,10 @@ export function getProductStatus(product, language = 'ar') {
 
   const p = { ...defaults, ...product };
   const now = new Date();
+  const normalizedStatus = String(p.status || '').trim().toLowerCase();
+  const isStopped = normalizedStatus === 'inactive' || p.isActive === false;
+  const isVisibleByUser = p.isVisibleInStore !== false || isStopped;
+  const isUnavailableStatus = p.productStatus === 'unavailable' || isStopped;
 
   const isInSchedule = () => {
     if (!p.enableSchedule) return true;
@@ -92,11 +96,11 @@ export function getProductStatus(product, language = 'ar') {
   const isOutOfStock = () => p.trackInventory && p.stockQuantity <= 0;
   const isLowStock = () => p.trackInventory && p.stockQuantity > 0 && p.stockQuantity <= p.lowStockThreshold;
 
-  const isHiddenByUser = !p.isVisibleInStore;
+  const isHiddenByUser = !isVisibleByUser;
   const isHiddenBySchedule = !isInSchedule() && p.scheduleVisibilityMode === 'hide';
   const isHiddenByStock = isOutOfStock() && p.hideWhenOutOfStock;
 
-  const isVisible = !isHiddenByUser && !isHiddenBySchedule && !isHiddenByStock && p.isVisibleInStore;
+  const isVisible = !isHiddenByUser && !isHiddenBySchedule && !isHiddenByStock && isVisibleByUser;
 
   let isPurchasable = isVisible;
   let badge = null;
@@ -106,10 +110,17 @@ export function getProductStatus(product, language = 'ar') {
   let reason = '';
   let isDisabled = false;
 
-  if (!p.isVisibleInStore) {
+  if (!isVisibleByUser) {
     isPurchasable = false;
     isDisabled = true;
     reason = copy.productHiddenReason;
+  } else if (isUnavailableStatus) {
+    isPurchasable = false;
+    badge = 'unavailable';
+    badgeLabel = copy.unavailableLabel;
+    badgeColor = 'danger';
+    helperText = copy.unavailableHelper;
+    reason = copy.unavailableReason;
   } else if (p.pauseSales) {
     isPurchasable = false;
     badge = 'paused';
@@ -117,15 +128,6 @@ export function getProductStatus(product, language = 'ar') {
     badgeColor = 'warning';
     helperText = p.pauseReason || copy.pausedHelper;
     reason = copy.pausedReason;
-  } else if (p.productStatus === 'unavailable') {
-    isPurchasable = false;
-    if (p.showWhenUnavailable) {
-      badge = 'unavailable';
-      badgeLabel = copy.unavailableLabel;
-      badgeColor = 'danger';
-      helperText = copy.unavailableHelper;
-    }
-    reason = copy.unavailableReason;
   } else if (p.productStatus === 'paused') {
     isPurchasable = false;
     if (p.showWhenUnavailable) {
@@ -180,6 +182,7 @@ export function getProductStatus(product, language = 'ar') {
     isVisible,
     isPurchasable,
     isDisabled,
+    label: badgeLabel || copy.availableLabel,
     badge,
     badgeLabel,
     badgeColor,
@@ -255,8 +258,7 @@ export function validateProductForm(inputProductForm, options = {}) {
 export function getAvailableProductStatuses() {
   return [
     { value: 'available', label: 'متوفر', labelEn: 'Available', color: 'success' },
-    { value: 'unavailable', label: 'غير متوفر', labelEn: 'Unavailable', color: 'danger' },
-    { value: 'paused', label: 'موقوف مؤقتاً', labelEn: 'Paused', color: 'warning' }
+    { value: 'unavailable', label: 'غير متوفر', labelEn: 'Unavailable', color: 'danger' }
   ];
 }
 

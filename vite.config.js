@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
+            if (id.includes('@barba/core')) return 'transition-vendor';
             if (id.includes('react-router')) return 'router-vendor';
             if (id.includes('framer-motion')) return 'motion-vendor';
             if (id.includes('i18next')) return 'i18n-vendor';

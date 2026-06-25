@@ -1,7 +1,9 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import Button from '../ui/Button';
+import { useBodyScrollLock } from '../../utils/bodyScrollLock';
 
 const ConfirmDialog = ({
   open,
@@ -14,7 +16,9 @@ const ConfirmDialog = ({
   isLoading = false,
   children
 }) => {
-  return (
+  useBodyScrollLock(open);
+
+  const dialog = (
     <AnimatePresence>
       {open ? (
         <motion.div
@@ -59,6 +63,10 @@ const ConfirmDialog = ({
       ) : null}
     </AnimatePresence>
   );
+
+  if (typeof document === 'undefined') return dialog;
+
+  return createPortal(dialog, document.body);
 };
 
 export default ConfirmDialog;

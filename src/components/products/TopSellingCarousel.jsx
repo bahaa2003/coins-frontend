@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ShoppingBag, TrendingUp } from 'lucide-react';
 import Button, { cn } from '../ui/Button';
 import { resolveImageUrl } from '../../utils/imageUrl';
-import coinsImage from '../../assets/عملات.webp';
+import coinsImage from '../../assets/logo.webp';
+import UnavailableLockOverlay from './UnavailableLockOverlay';
 
 const TopSellingCarousel = ({
   products,
@@ -66,12 +67,23 @@ const TopSellingCarousel = ({
       >
         {products.map((product, index) => {
           const isUnavailable = product.storefrontStatus?.isPurchasable === false;
+          const resolvedUnavailableLabel = product.storefrontStatus?.badgeLabel || unavailableLabel;
+          const actionClassName = cn(
+            'glow-button mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-soft)_48%,var(--color-primary-hover))] px-4 text-sm font-semibold text-[var(--color-button-text)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5',
+            isUnavailable && 'cursor-not-allowed opacity-60 hover:translate-y-0'
+          );
 
           return (
             <article
               key={product.id}
-              className="product-led-card snap-start min-w-[82%] p-3 sm:min-w-[48%] sm:p-4 lg:min-w-[31%]"
+              className={cn(
+                'product-led-card relative isolate snap-start min-w-[82%] p-3 sm:min-w-[48%] sm:p-4 lg:min-w-[31%]',
+                isUnavailable && 'cursor-not-allowed'
+              )}
             >
+              {isUnavailable ? (
+                <span className="pointer-events-none absolute inset-0 z-10 rounded-[1.75rem] bg-black/38" aria-hidden="true" />
+              ) : null}
               <div className="relative overflow-hidden rounded-[1.4rem]">
                 <img
                   src={product.image ? resolveImageUrl(product.image) : coinsImage}
@@ -83,10 +95,8 @@ const TopSellingCarousel = ({
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,11,11,0.08)_0%,rgba(11,11,11,0.22)_38%,rgba(11,11,11,0.86)_100%)]" />
                 {isUnavailable && (
-                  <div className="absolute inset-0 grid place-items-center bg-black/20 px-3">
-                    <span className="rounded-full border border-white/22 bg-black/60 px-3 py-1.5 text-xs font-black text-white shadow-[0_10px_28px_-18px_rgb(0_0_0/0.9)] backdrop-blur-md">
-                      {unavailableLabel}
-                    </span>
+                  <div className="absolute inset-0 z-20 bg-black/20 px-3 pt-3">
+                    <UnavailableLockOverlay label={resolvedUnavailableLabel} size="lg" />
                   </div>
                 )}
 
@@ -107,18 +117,29 @@ const TopSellingCarousel = ({
                 </div>
               </div>
 
-              <div className="pt-4">
+              <div className="relative z-20 pt-4">
                 <h3 className="line-clamp-2 text-base font-semibold text-[var(--color-text)] sm:text-lg">
                   {product.displayName}
                 </h3>
 
-                <Link
-                  to={`/products/${product.id}`}
-                  className="glow-button mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-soft)_48%,var(--color-primary-hover))] px-4 text-sm font-semibold text-[var(--color-button-text)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5"
-                >
-                  <ShoppingBag className="h-4 w-4" />
-                  {buyLabel}
-                </Link>
+                {isUnavailable ? (
+                  <button
+                    type="button"
+                    className={actionClassName}
+                    disabled
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    {resolvedUnavailableLabel}
+                  </button>
+                ) : (
+                  <Link
+                    to={`/products/${product.id}`}
+                    className={actionClassName}
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    {buyLabel}
+                  </Link>
+                )}
               </div>
             </article>
           );
