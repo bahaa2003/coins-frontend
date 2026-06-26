@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
@@ -13,14 +14,18 @@ import {
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/useAuthStore';
 import useMediaStore from '../store/useMediaStore';
+import useGroupStore from '../store/useGroupStore';
 import apiClient from '../services/client';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import HeaderBrand from '../components/layout/HeaderBrand';
 import PublicSidebar from '../components/layout/PublicSidebar';
+import SiteCopyrightFooter from '../components/layout/SiteCopyrightFooter';
 import HeroSlider from '../components/home/HeroSlider';
 import CategoryCard from '../components/home/CategoryCard';
 import ProductSearchBar from '../components/products/ProductSearchBar';
 import ProductCardSimple from '../components/products/ProductCardSimple';
+import UnavailableLockOverlay from '../components/products/UnavailableLockOverlay';
+import ProductPurchaseDialog from '../components/products/ProductPurchaseDialog';
 import LoadingSkeleton from '../components/products/LoadingSkeleton';
 import EmptyState from '../components/products/EmptyState';
 import Seo from '../components/seo/Seo';
@@ -31,13 +36,18 @@ import {
   getStorefrontLanguage,
 } from '../utils/storefront';
 import { buildStoreSeo, toAbsoluteUrl } from '../utils/seo';
+import { useBodyScrollLock } from '../utils/bodyScrollLock';
+import { resolveImageUrl } from '../utils/imageUrl';
 import slideOneImage from '../assets/slide-1.webp';
 import slideTwoImage from '../assets/slide-2.webp';
 import slideThreeImage from '../assets/slide-3.webp';
+import targetSalesImage from '../assets/ترجتات.jpg';
+import coinsImage from '../assets/logo.webp';
 
 const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
 const isRealProvider = dataProvider === 'real';
 const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029Vb5xkFpFMqrUmvTSil0Q';
+const PUBLIC_NOTICES_SEEN_KEY = 'coins-stores-public-notices-seen-v1';
 const normalizeCategoryKey = (value) => String(value || '').trim().toLowerCase();
 
 const addCategoryAlias = (set, value) => {
@@ -45,6 +55,79 @@ const addCategoryAlias = (set, value) => {
   if (normalized) {
     set.add(normalized);
   }
+};
+
+const getRecordKey = (record) => String(
+  record?.id
+  || record?._id
+  || record?.slug
+  || record?.name
+  || record?.nameAr
+  || record?.title
+  || record?.titleAr
+  || ''
+).trim();
+
+const mergeRecordsByKey = (...sources) => {
+  const map = new Map();
+
+  sources.forEach((source) => {
+    (Array.isArray(source) ? source : []).forEach((record) => {
+      if (!record) return;
+      const key = getRecordKey(record);
+      if (!key) return;
+      map.set(key, {
+        ...(map.get(key) || {}),
+        ...record,
+      });
+    });
+  });
+
+  return Array.from(map.values());
+};
+
+const hasSeenPublicNotices = () => {
+  if (typeof window === 'undefined') return true;
+
+  try {
+    return window.localStorage.getItem(PUBLIC_NOTICES_SEEN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const markPublicNoticesSeen = () => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(PUBLIC_NOTICES_SEEN_KEY, 'true');
+  } catch {
+    // Ignore storage restrictions; the notice should still work normally.
+  }
+};
+
+const getGroupPercentage = (group) => {
+  const value = Number(group?.percentage ?? group?.discount ?? group?.markup ?? group?.rate ?? 0);
+  return Number.isFinite(value) ? value : 0;
+};
+
+const getPublicPricingGroup = (groups) => {
+  const list = Array.isArray(groups) ? groups : [];
+  const highestGroup = list.reduce((best, group) => {
+    if (!best) return group;
+    return getGroupPercentage(group) > getGroupPercentage(best) ? group : best;
+  }, null);
+
+  return {
+    group: highestGroup?.name || highestGroup?.nameAr || 'Normal',
+    groupId: highestGroup?.id || highestGroup?._id || highestGroup?.name || 'Normal',
+    groupPercentage: highestGroup ? getGroupPercentage(highestGroup) : null,
+    currency: 'USD',
+    coins: 0,
+    walletBalance: 0,
+    creditLimit: 0,
+    creditUsed: 0,
+  };
 };
 
 const getProductCategoryKeys = (product) => {
@@ -82,12 +165,18 @@ const PublicCatalog = () => {
   const userRole = useAuthStore((state) => state.user?.role);
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const { categories, products, isLoading, loadProducts } = useMediaStore();
+  const groups = useGroupStore((state) => state.groups);
+  const loadGroups = useGroupStore((state) => state.loadGroups);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showServiceNotice, setShowServiceNotice] = useState(false);
   const [showWhatsAppNotice, setShowWhatsAppNotice] = useState(false);
   const [currentParentId, setCurrentParentId] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [publicCatalog, setPublicCatalog] = useState({ categories: null, products: null });
   const [isPublicCatalogLoading, setIsPublicCatalogLoading] = useState(isRealProvider);
+  const hasActiveNotice = showServiceNotice || showWhatsAppNotice || isMenuOpen;
+
+  useBodyScrollLock(hasActiveNotice);
 
   const language = getStorefrontLanguage(i18n);
   const isArabic = language === 'ar';
@@ -105,6 +194,9 @@ const PublicCatalog = () => {
             backToCatalogs: 'العودة إلى الأقسام',
             unavailable: 'غير متاح',
             loginToBuy: 'شراء الآن',
+            targetTitle: 'بيع التارجت',
+            topSellingTitle: 'الأكثر مبيعًا',
+            viewAll: 'عرض الكل',
           }
         : {
             searchPlaceholder: 'Search for a product...',
@@ -117,6 +209,9 @@ const PublicCatalog = () => {
             backToCatalogs: 'Back to categories',
             unavailable: 'Unavailable',
             loginToBuy: 'Buy now',
+            targetTitle: 'Target Sales',
+            topSellingTitle: 'Top selling',
+            viewAll: 'View all',
           }
     ),
     [isArabic]
@@ -129,11 +224,17 @@ const PublicCatalog = () => {
   }, [isAuthenticated, navigate, userRole]);
 
   useEffect(() => {
+    loadGroups({ force: false });
+  }, [loadGroups]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || isAuthenticated) return undefined;
+    if (hasSeenPublicNotices()) return undefined;
 
     let didCancel = false;
     const showNotice = () => {
       if (!didCancel) {
+        markPublicNoticesSeen();
         setShowServiceNotice(true);
       }
     };
@@ -157,8 +258,7 @@ const PublicCatalog = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (isRealProvider) return;
-    loadProducts({ force: false });
+    loadProducts({ force: true, bypassCache: true });
   }, [loadProducts]);
 
   useEffect(() => {
@@ -188,7 +288,7 @@ const PublicCatalog = () => {
         if (isMounted) {
           setPublicCatalog({ categories: null, products: null });
         }
-        return loadProducts({ force: true });
+        return loadProducts({ force: true, bypassCache: true });
       })
       .finally(() => {
         if (isMounted) {
@@ -207,6 +307,7 @@ const PublicCatalog = () => {
   }, []);
 
   const handleCloseWhatsAppNotice = useCallback(() => {
+    markPublicNoticesSeen();
     setShowWhatsAppNotice(false);
   }, []);
 
@@ -219,16 +320,23 @@ const PublicCatalog = () => {
     []
   );
 
-  const catalogProducts = publicCatalog.products?.length ? publicCatalog.products : products;
-  const catalogCategories = publicCatalog.categories?.length ? publicCatalog.categories : categories;
+  const catalogProducts = useMemo(
+    () => mergeRecordsByKey(products, publicCatalog.products),
+    [products, publicCatalog.products]
+  );
+  const catalogCategories = useMemo(
+    () => mergeRecordsByKey(categories, publicCatalog.categories),
+    [categories, publicCatalog.categories]
+  );
+  const publicPricingUser = useMemo(() => getPublicPricingGroup(groups), [groups]);
 
   const storefrontProducts = useMemo(
     () => createStorefrontProducts(catalogProducts, {
       language,
-      userGroup: 'Normal',
-      userGroupPercentage: null,
+      userGroup: publicPricingUser.groupId || publicPricingUser.group,
+      userGroupPercentage: publicPricingUser.groupPercentage,
     }),
-    [catalogProducts, language]
+    [catalogProducts, language, publicPricingUser.group, publicPricingUser.groupId, publicPricingUser.groupPercentage]
   );
 
   const storefrontCategories = useMemo(
@@ -377,6 +485,57 @@ const PublicCatalog = () => {
     [currentCategoryProductKeys, currentParentId, storefrontProducts]
   );
 
+  const homepageProducts = useMemo(() => {
+    const rootCategories = storefrontCategories.filter((category) => {
+      const parentId = getParentId(category);
+      return parentId === null;
+    });
+    const pickedIds = new Set();
+
+    const pickFromCategory = (category, limit) => {
+      if (!category) return [];
+      const categoryIds = new Set([category.id]);
+      const queue = [category.id];
+      const selected = [];
+
+      while (queue.length > 0) {
+        const categoryId = queue.shift();
+        (childrenMap.get(categoryId) || []).forEach((child) => {
+          if (child?.id && !categoryIds.has(child.id)) {
+            categoryIds.add(child.id);
+            queue.push(child.id);
+          }
+        });
+      }
+
+      const categoryKeys = new Set();
+      categoryIds.forEach((categoryId) => {
+        addCategoryAlias(categoryKeys, categoryId);
+        const aliases = categoryAliasesById.get(categoryId);
+        if (aliases) {
+          aliases.forEach((alias) => categoryKeys.add(alias));
+        }
+      });
+
+      for (const product of storefrontProducts) {
+        if (selected.length >= limit) break;
+        const productCategoryKeys = getProductCategoryKeys(product);
+        const matchesCategory = Array.from(productCategoryKeys).some((key) => categoryKeys.has(key));
+        if (!matchesCategory) continue;
+        if (pickedIds.has(product.id)) continue;
+        pickedIds.add(product.id);
+        selected.push(product);
+      }
+
+      return selected;
+    };
+
+    return [
+      ...pickFromCategory(rootCategories[0], 4),
+      ...pickFromCategory(rootCategories[1], 4),
+    ];
+  }, [categoryAliasesById, childrenMap, getParentId, storefrontCategories, storefrontProducts]);
+
   const showInitialLoading = (isRealProvider ? isPublicCatalogLoading : isLoading)
     && storefrontProducts.length === 0
     && storefrontCategories.length === 0;
@@ -413,9 +572,14 @@ const PublicCatalog = () => {
     setCurrentParentId(categoryId || null);
   }, []);
 
-  const handleProductSelect = useCallback(() => {
-    navigate('/auth?mode=login');
-  }, [navigate]);
+  const handleProductSelect = useCallback((product) => {
+    if (!product) return;
+    setSelectedProduct(product);
+  }, []);
+
+  const closePurchaseDialog = useCallback(() => {
+    setSelectedProduct(null);
+  }, []);
 
   const resetToCatalogs = useCallback(() => {
     setCurrentParentId(null);
@@ -463,7 +627,7 @@ const PublicCatalog = () => {
         jsonLd={seoData.jsonLd}
       />
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[color:rgb(var(--color-border-rgb)/0.32)] bg-[color:rgb(var(--color-background-rgb)/0.88)] shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.36)] backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-[90] border-b border-[color:rgb(var(--color-border-rgb)/0.32)] bg-[color:rgb(var(--color-background-rgb)/0.88)] shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.36)] backdrop-blur-xl">
         <div className="mx-auto max-w-[var(--shell-max-width)] px-3 py-2 sm:px-4 lg:px-6">
           <div dir="ltr" className="coins-stores-panel grid min-h-[2.95rem] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-[20px] border px-2.5 py-1 sm:min-h-[3.25rem] sm:gap-5 sm:rounded-[28px] sm:px-5 sm:py-1.5">
             <div className="col-start-1 row-start-1 flex items-center gap-1 justify-self-start sm:gap-2">
@@ -510,6 +674,8 @@ const PublicCatalog = () => {
         isArabic={isArabic}
       />
 
+      {typeof document !== 'undefined' && createPortal(
+        <>
       {showServiceNotice && (
         <div className="public-notice-overlay public-notice-overlay--service fixed inset-0 z-[90] flex items-center justify-center bg-[radial-gradient(circle_at_top,rgb(240_200_90/0.14),rgb(29_149_168/0.18)_42%,rgb(0_0_0/0.88))] px-4 backdrop-blur-[4px]">
           <div
@@ -666,6 +832,9 @@ const PublicCatalog = () => {
           </div>
         </div>
       )}
+        </>,
+        document.body
+      )}
 
       <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto max-w-[var(--shell-max-width)] space-y-5 sm:space-y-6">
@@ -787,8 +956,115 @@ const PublicCatalog = () => {
               </>
             )}
           </section>
+
+          {!isInsideCategory && (
+            <div className="mx-auto w-full max-w-5xl px-0.5 sm:px-2">
+              <button
+                type="button"
+                onClick={handleLogin}
+                className="group mx-auto block w-full max-w-3xl overflow-hidden rounded-[1.1rem] border border-[color:rgb(var(--color-primary-rgb)/0.24)] bg-[color:rgb(var(--color-card-rgb)/0.72)] text-start shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.72)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.42)] hover:shadow-[0_22px_54px_-36px_rgb(var(--color-primary-rgb)/0.9)]"
+                aria-label={copy.targetTitle}
+              >
+                <span className="block overflow-hidden bg-black">
+                  <img
+                    src={targetSalesImage}
+                    alt={copy.targetTitle}
+                    className="block aspect-[2048/800] w-full object-cover transition-transform duration-500 group-hover:scale-[1.012]"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </span>
+                <span className="block border-t border-[color:rgb(var(--color-primary-rgb)/0.16)] bg-[linear-gradient(180deg,rgb(var(--color-card-rgb)/0.9),rgb(var(--color-surface-rgb)/0.68))] px-3 py-2 text-center">
+                  <span className="text-sm font-extrabold text-[var(--color-text)] sm:text-base">
+                    {copy.targetTitle}
+                  </span>
+                </span>
+              </button>
+            </div>
+          )}
+
+          {!isInsideCategory && homepageProducts.length ? (
+            <section className="mx-auto w-full max-w-5xl space-y-3 px-0.5 sm:px-2" aria-labelledby="public-best-selling-title">
+              <div className="flex items-center justify-between gap-3">
+                <h2 id="public-best-selling-title" className="text-base font-black text-[var(--color-text)] sm:text-lg">
+                  {copy.topSellingTitle}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleLogin}
+                  className="text-xs font-bold text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] sm:text-sm"
+                >
+                  {copy.viewAll}
+                </button>
+              </div>
+
+              <div
+                className="scrollbar-hide flex snap-x snap-mandatory items-stretch gap-2.5 overflow-x-auto scroll-smooth pb-1 sm:gap-3"
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+              >
+                {homepageProducts.map((product) => {
+                  const productName = product.displayName || product.nameAr || product.name || '';
+                  const imageSrc = product.image ? resolveImageUrl(product.image) : coinsImage;
+                  const isUnavailable = product.storefrontStatus?.isPurchasable === false;
+                  const unavailableLabel = product.storefrontStatus?.badgeLabel || copy.unavailable;
+
+                  return (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => {
+                        handleProductSelect(product);
+                      }}
+                      className={`group relative isolate flex min-w-[38%] snap-start flex-col rounded-[1rem] border border-[color:rgb(var(--color-border-rgb)/0.7)] bg-[color:rgb(var(--color-card-rgb)/0.76)] p-2 text-center shadow-[0_14px_34px_-30px_rgb(var(--color-primary-rgb)/0.7)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.32)] min-[430px]:min-w-[30%] sm:min-w-[22%] lg:min-w-[17%] ${isUnavailable ? 'hover:translate-y-0' : ''}`}
+                      aria-label={productName}
+                    >
+                      {isUnavailable ? (
+                        <span className="pointer-events-none absolute inset-0 z-10 rounded-[1rem] bg-[linear-gradient(180deg,rgb(255_255_255/0.14),rgb(240_200_90/0.08))] dark:bg-[linear-gradient(180deg,rgb(255_255_255/0.06),rgb(29_149_168/0.08))]" aria-hidden="true" />
+                      ) : null}
+                      <span className="best-selling-media relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[0.85rem] bg-[color:rgb(var(--color-surface-rgb)/0.72)]">
+                        <img
+                          src={imageSrc}
+                          alt={productName}
+                          className={`best-selling-image h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04] ${isUnavailable ? 'brightness-[0.92] saturate-[0.88]' : ''}`}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        {isUnavailable ? (
+                          <span className="absolute inset-0 z-20 bg-white/12 dark:bg-white/5">
+                            <UnavailableLockOverlay label="" size="sm" />
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="relative z-20 mt-2 flex min-h-[1.75rem] items-center justify-center">
+                        {isUnavailable ? (
+                          <span className="unavailable-status-badge inline-flex min-h-6 max-w-full items-center justify-center rounded-full px-2.5 py-1 text-[0.68rem] font-black leading-none">
+                            {unavailableLabel}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="relative z-20 mt-2 line-clamp-2 block min-h-[2.35rem] text-[0.72rem] font-bold leading-5 text-[var(--color-text)] sm:text-xs">
+                        {productName}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
         </div>
       </main>
+
+      <ProductPurchaseDialog
+        isOpen={Boolean(selectedProduct)}
+        productId={selectedProduct?.id}
+        initialProduct={selectedProduct}
+        onClose={closePurchaseDialog}
+        pricingPreviewUser={publicPricingUser}
+        requireAuth
+        onRequireAuth={handleLogin}
+      />
+
+      <SiteCopyrightFooter isArabic={isArabic} />
     </div>
   );
 };

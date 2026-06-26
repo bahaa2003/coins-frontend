@@ -71,9 +71,31 @@ export function getProductStatus(product, language = 'ar') {
   const p = { ...defaults, ...product };
   const now = new Date();
   const normalizedStatus = String(p.status || '').trim().toLowerCase();
-  const isStopped = normalizedStatus === 'inactive' || p.isActive === false;
+  const normalizedProductStatus = String(p.productStatus || '').trim().toLowerCase();
+  const stoppedStatuses = new Set([
+    'inactive',
+    'disabled',
+    'disable',
+    'stopped',
+    'stop',
+    'paused',
+    'pause',
+    'hidden',
+    'unavailable',
+    'not_available',
+    'not-available',
+    'out_of_service',
+    'out-of-service',
+    'suspended',
+    'blocked',
+    'off',
+    'closed',
+  ]);
+  const isStopped = stoppedStatuses.has(normalizedStatus)
+    || stoppedStatuses.has(normalizedProductStatus)
+    || p.isActive === false;
   const isVisibleByUser = p.isVisibleInStore !== false || isStopped;
-  const isUnavailableStatus = p.productStatus === 'unavailable' || isStopped;
+  const isUnavailableStatus = normalizedProductStatus === 'unavailable' || isStopped;
 
   const isInSchedule = () => {
     if (!p.enableSchedule) return true;

@@ -71,7 +71,7 @@ const PublicSidebar = ({ isOpen, onClose, onLogin, onHome, onAbout, onContact, o
           type="button"
           aria-label="close menu"
           onClick={onClose}
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px]"
         />
       ) : null}
 
@@ -80,7 +80,7 @@ const PublicSidebar = ({ isOpen, onClose, onLogin, onHome, onAbout, onContact, o
           width: isMobile ? 'min(292px, calc(100vw - 1.5rem))' : 282,
           transform: `translateX(${isOpen ? 0 : 332}px)`,
         }}
-        className="fixed right-3 top-3 z-[70] block h-[calc(100vh-1.5rem)] overflow-hidden transition-[transform,width] duration-200 ease-out sm:right-4 sm:top-4 sm:h-[calc(100vh-2rem)] motion-reduce:transition-none"
+        className="fixed right-3 top-3 z-[110] block h-[calc(100dvh-1.5rem)] max-h-[calc(100dvh-1.5rem)] overflow-hidden transition-[transform,width] duration-200 ease-out sm:right-4 sm:top-4 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] motion-reduce:transition-none"
       >
         <div className={cn(
           'app-shell-sidebar-panel coins-sidebar-panel relative flex h-full flex-col overflow-hidden rounded-[32px] border backdrop-blur-[24px]'

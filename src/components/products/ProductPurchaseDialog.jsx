@@ -43,6 +43,7 @@ const getCopy = (language = 'ar') => (
         userId: 'User ID',
         userIdPlaceholder: 'Enter your user ID',
         buyNow: 'Buy Now',
+        loginToBuy: 'Log in to buy',
         buying: 'Processing...',
         cancel: 'Cancel',
         successTitle: 'Purchase completed successfully',
@@ -75,6 +76,7 @@ const getCopy = (language = 'ar') => (
         userId: 'معرف المستخدم',
         userIdPlaceholder: 'أدخل معرف المستخدم',
         buyNow: 'شراء',
+        loginToBuy: 'تسجيل الدخول للشراء',
         buying: 'جاري التنفيذ...',
         cancel: 'إلغاء',
         successTitle: 'تم الشراء بنجاح',
@@ -145,7 +147,16 @@ const SummaryRow = ({ label, value, icon, onClick, title }) => (
   </div>
 );
 
-const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClose, onViewOrder }) => {
+const ProductPurchaseDialog = ({
+  productId,
+  initialProduct = null,
+  isOpen,
+  onClose,
+  onViewOrder,
+  pricingPreviewUser = null,
+  requireAuth = false,
+  onRequireAuth,
+}) => {
   const { language, dir } = useLanguage();
   const { addToast } = useToast();
   const copy = useMemo(() => getCopy(language), [language]);
@@ -240,17 +251,19 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
   const quantityMeta = useMemo(() => (product ? getProductQuantityMeta(product) : null), [product]);
   const orderFields = useMemo(() => (product ? resolveProductOrderFields(product, language) : []), [language, product]);
 
-  const userCurrencyCode = String(user?.currency || 'USD').toUpperCase();
-  const pricingGroup = user?.groupId || user?.group || 'Normal';
-  const pricingGroupPercentage = user?.groupPercentage ?? null;
+  const pricingUser = user || pricingPreviewUser || null;
+  const shouldRequireAuth = Boolean(requireAuth && !user);
+  const userCurrencyCode = String(pricingUser?.currency || 'USD').toUpperCase();
+  const pricingGroup = pricingUser?.groupId || pricingUser?.group || 'Normal';
+  const pricingGroupPercentage = pricingUser?.groupPercentage ?? null;
   const unitPriceBase = product ? calculateProductPrice(product, pricingGroup, pricingGroupPercentage) : '0';
   const unitPrice = product ? resolveProductUnitPrice(product, userCurrencyCode, currencies, pricingGroup, pricingGroupPercentage) : '0';
   const quantity = Number.parseInt(quantityInput, 10);
   const safeQuantity = Number.isFinite(quantity) ? quantity : 0;
   const totalPrice = normalizeMoneyAmount(Number(unitPrice) * safeQuantity);
-  const walletBalance = normalizeMoneyAmount(user?.walletBalance ?? user?.coins ?? user?.balance ?? 0);
-  const creditLimit = normalizeMoneyAmount(user?.creditLimit ?? 0);
-  const creditUsed = normalizeMoneyAmount(user?.creditUsed ?? 0);
+  const walletBalance = normalizeMoneyAmount(pricingUser?.walletBalance ?? pricingUser?.coins ?? pricingUser?.balance ?? 0);
+  const creditLimit = normalizeMoneyAmount(pricingUser?.creditLimit ?? 0);
+  const creditUsed = normalizeMoneyAmount(pricingUser?.creditUsed ?? 0);
   const availableBalance = normalizeMoneyAmount(walletBalance + creditLimit - creditUsed);
   const locale = language === 'en' ? 'en-US' : 'ar-EG';
   const formattedUnitPrice = formatCurrencyAmount(unitPrice, userCurrencyCode, currencies, locale);
@@ -309,7 +322,9 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
   const statusLabel = isPurchasable
     ? (product?.storefrontStatus?.label || product?.storefrontStatus?.badgeLabel || copy.available)
     : (product?.storefrontStatus?.label || product?.storefrontStatus?.badgeLabel || copy.unavailable);
-  const purchaseButtonLabel = isSubmitting ? copy.buying : (isPurchasable ? copy.buyNow : statusLabel);
+  const purchaseButtonLabel = isSubmitting
+    ? copy.buying
+    : (shouldRequireAuth && isPurchasable ? copy.loginToBuy : (isPurchasable ? copy.buyNow : statusLabel));
 
   const primaryOrderField = orderFields.find((field) => String(field?.key || '').toLowerCase() === 'playerid')
     || orderFields.find((field) => !isUploadFieldType(field?.type))
@@ -454,6 +469,10 @@ const ProductPurchaseDialog = ({ productId, initialProduct = null, isOpen, onClo
 
   const handlePurchase = async () => {
     if (!product || !quantityMeta) return;
+    if (shouldRequireAuth) {
+      onRequireAuth?.();
+      return;
+    }
     const validationError = validateForm();
     setFormError(validationError);
     setServerError('');

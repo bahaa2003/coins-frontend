@@ -94,7 +94,7 @@ const Products = () => {
   const [activeSubcategoryId, setActiveSubcategoryId] = useState(null);
 
   useEffect(() => {
-    loadProducts({ force: false });
+    loadProducts({ force: true, bypassCache: true });
     loadCurrencies();
   }, [loadProducts, loadCurrencies]);
 

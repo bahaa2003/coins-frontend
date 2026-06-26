@@ -541,11 +541,6 @@ const countryOptions = useMemo(() => {
       };
 
   const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
     navigate('/');
   };
 
@@ -556,10 +551,10 @@ const countryOptions = useMemo(() => {
         onClick={handleBack}
         className={styles.backButton}
         data-auth-no-sparkle
-        aria-label={dir === 'rtl' ? 'رجوع' : 'Back'}
+        aria-label={dir === 'rtl' ? 'العودة للرئيسية' : 'Back to home'}
       >
         <ArrowRight className="h-4 w-4" />
-        <span>{dir === 'rtl' ? 'رجوع' : 'Back'}</span>
+        <span>{dir === 'rtl' ? 'العودة للرئيسية' : 'Back to home'}</span>
       </button>
 
       <div className={styles.topControls} data-auth-no-sparkle>

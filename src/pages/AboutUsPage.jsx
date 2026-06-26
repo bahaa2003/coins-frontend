@@ -7,6 +7,8 @@ import useAuthStore from '../store/useAuthStore';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import HeaderBrand from '../components/layout/HeaderBrand';
 import PublicSidebar from '../components/layout/PublicSidebar';
+import SiteCopyrightFooter from '../components/layout/SiteCopyrightFooter';
+import { useBodyScrollLock } from '../utils/bodyScrollLock';
 import { buildWhatsAppLink, getAdminWhatsAppNumber } from '../utils/whatsapp';
 import brandIconImage from '../assets/logo.webp';
 
@@ -17,6 +19,8 @@ const AboutUsPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isArabic = String(i18n.resolvedLanguage || i18n.language || 'ar').toLowerCase().startsWith('ar');
+
+  useBodyScrollLock(isMenuOpen);
 
   const whatsappLink = useMemo(() => buildWhatsAppLink({
     number: getAdminWhatsAppNumber(),
@@ -72,7 +76,7 @@ const AboutUsPage = () => {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fff8ea_0%,#f4fbff_48%,#fffdf8_100%)] pb-5 pt-[4.75rem] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(29,149,168,0.16),transparent_34%),linear-gradient(180deg,#041019_0%,#07111f_52%,#03070d_100%)]">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[color:rgb(var(--color-border-rgb)/0.32)] bg-[color:rgb(var(--color-background-rgb)/0.88)] shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.36)] backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-[90] border-b border-[color:rgb(var(--color-border-rgb)/0.32)] bg-[color:rgb(var(--color-background-rgb)/0.88)] shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.36)] backdrop-blur-xl">
         <div className="mx-auto max-w-[var(--shell-max-width)] px-3 py-2 sm:px-4 lg:px-6">
           <div dir="ltr" className="coins-stores-panel grid min-h-[2.95rem] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-[20px] border px-2.5 py-1 sm:min-h-[3.25rem] sm:gap-5 sm:rounded-[28px] sm:px-5 sm:py-1.5">
             <div className="col-start-1 row-start-1 flex items-center gap-1 justify-self-start sm:gap-2">
@@ -221,6 +225,8 @@ const AboutUsPage = () => {
           </div>
         </motion.section>
       </main>
+
+      <SiteCopyrightFooter isArabic={isArabic} />
     </div>
   );
 };

@@ -700,13 +700,36 @@ const normaliseProduct = (p) => {
   const id = p._id || p.id;
   const productStatus = String(p.productStatus || '').trim().toLowerCase();
   const rawStatus = String(p.status || '').trim().toLowerCase();
+  const stoppedStatuses = new Set([
+    'inactive',
+    'disabled',
+    'disable',
+    'stopped',
+    'stop',
+    'paused',
+    'pause',
+    'hidden',
+    'unavailable',
+    'not_available',
+    'not-available',
+    'out_of_service',
+    'out-of-service',
+    'suspended',
+    'blocked',
+    'off',
+    'closed',
+  ]);
   const hasExplicitIsActive = p.isActive !== undefined && p.isActive !== null;
-  const isActive = hasExplicitIsActive ? p.isActive !== false : productStatus !== 'unavailable';
+  const isActive = hasExplicitIsActive
+    ? p.isActive !== false
+    : !stoppedStatuses.has(productStatus) && !stoppedStatuses.has(rawStatus);
   const normalizedStatus = ['active', 'inactive'].includes(rawStatus)
     ? rawStatus
+    : stoppedStatuses.has(rawStatus)
+      ? 'inactive'
     : (isActive ? 'active' : 'inactive');
   const isStopped = normalizedStatus === 'inactive';
-  const resolvedProductStatus = productStatus === 'unavailable' || isStopped ? 'unavailable' : 'available';
+  const resolvedProductStatus = stoppedStatuses.has(productStatus) || isStopped ? 'unavailable' : 'available';
 
   // Resolve populated provider reference
   const providerId = typeof p.provider === 'object' ? (p.provider?._id || p.provider?.id) : p.provider;
@@ -1864,22 +1887,53 @@ const realApi = {
         includeInactive: true,
         showUnavailable: true,
         includeHidden: true,
+        includeDisabled: true,
+        includeStopped: true,
+        includePaused: true,
+        status: 'all',
+        productStatus: 'all',
+        visibility: 'all',
       };
       const requestPlan = isAdmin()
         ? [
           ['/admin/products', { params: includeUnavailableParams }],
           ['/admin/products'],
+          ['/products', { params: includeUnavailableParams }],
+          ['/me/products', { params: includeUnavailableParams }],
         ]
         : [
           // Documented endpoint for customers.
           ['/products', { params: includeUnavailableParams }],
-          '/products',
           // Fallback for deployments that expose customer-scoped products.
           ['/me/products', { params: includeUnavailableParams }],
+          // If the current session is privileged but the persisted role is stale,
+          // this recovers inactive/unavailable products that public routes hide.
+          ['/admin/products', { params: includeUnavailableParams }],
+          '/products',
           '/me/products',
+          '/admin/products',
         ];
 
       let fallback = null;
+      const productsById = new Map();
+
+      const mergeProductRecord = (current, next) => {
+        if (!current) return next;
+        const keepCurrentCategory = productHasReadableCategory(current) && !productHasReadableCategory(next);
+
+        return {
+          ...current,
+          ...next,
+          category: keepCurrentCategory ? current.category : next.category,
+          categoryName: next.categoryName || current.categoryName,
+          categoryNameAr: next.categoryNameAr || current.categoryNameAr,
+          categoryTitle: next.categoryTitle || current.categoryTitle,
+          categoryTitleAr: next.categoryTitleAr || current.categoryTitleAr,
+          categoryLabel: next.categoryLabel || current.categoryLabel,
+          categoryLabelAr: next.categoryLabelAr || current.categoryLabelAr,
+          categoryAr: next.categoryAr || current.categoryAr,
+        };
+      };
 
       for (const entry of requestPlan) {
         try {
@@ -1887,20 +1941,21 @@ const realApi = {
           const res = await http.get(endpoint, config);
           const data = unwrap(res);
           const products = Array.isArray(data) ? data : (data?.products || []);
-          const normalised = (Array.isArray(products) ? products : []).map(normaliseProduct);
+          const normalised = (Array.isArray(products) ? products : []).map(normaliseProduct).filter(Boolean);
 
           if (!fallback) fallback = normalised;
 
-          // Prefer the endpoint that returns readable category values (name/object vs ObjectId).
-          if (productsHaveReadableCategories(normalised)) {
-            return normalised;
-          }
+          normalised.forEach((product) => {
+            const key = String(product?.id || product?._id || product?.slug || product?.name || product?.nameAr || '').trim();
+            if (!key) return;
+            productsById.set(key, mergeProductRecord(productsById.get(key), product));
+          });
         } catch {
           // Silent fallback across endpoints.
         }
       }
 
-      return fallback || [];
+      return productsById.size ? Array.from(productsById.values()) : (fallback || []);
     },
 
     /**
@@ -2803,19 +2858,95 @@ const realApi = {
         includeInactive: true,
         showUnavailable: true,
         includeHidden: true,
+        includeDisabled: true,
+        includeStopped: true,
+        includePaused: true,
+        status: 'all',
+        visibility: 'all',
       };
-      let res;
-      try {
-        res = await http.get('/public/catalog', { params: includeUnavailableParams });
-      } catch {
-        res = await http.get('/public/catalog');
+      const catalogRequests = [
+        ['/public/catalog', { params: includeUnavailableParams }],
+        ['/public/catalog?includeUnavailable=true&includeInactive=true&includeHidden=true&status=all&visibility=all'],
+        ['/storefront/catalog', { params: includeUnavailableParams }],
+        ['/catalog', { params: includeUnavailableParams }],
+      ];
+      const productRequests = [
+        ['/public/products', { params: includeUnavailableParams }],
+        ['/storefront/products', { params: includeUnavailableParams }],
+        ['/products', { params: includeUnavailableParams }],
+      ];
+      const categoryRequests = [
+        '/public/categories',
+        '/storefront/categories',
+        '/categories',
+      ];
+      const categoryMap = new Map();
+      const productMap = new Map();
+      let foundCatalog = false;
+
+      const readPayload = (res) => {
+        const body = res?.data || {};
+        return body?.data !== undefined ? body.data : body;
+      };
+
+      const addCategories = (items) => {
+        (Array.isArray(items) ? items : []).map(normaliseCategory).filter(Boolean).forEach((category) => {
+          const key = String(category.id || category._id || category.name || category.nameAr || '').trim();
+          if (key) categoryMap.set(key, { ...(categoryMap.get(key) || {}), ...category });
+        });
+      };
+
+      const addProducts = (items) => {
+        (Array.isArray(items) ? items : []).map(normaliseProduct).filter(Boolean).forEach((product) => {
+          const key = String(product.id || product._id || product.slug || product.name || product.nameAr || '').trim();
+          if (key) productMap.set(key, { ...(productMap.get(key) || {}), ...product });
+        });
+      };
+
+      for (const entry of catalogRequests) {
+        try {
+          const [endpoint, config] = Array.isArray(entry) ? entry : [entry, undefined];
+          const res = await http.get(endpoint, config);
+          const data = readPayload(res);
+          addCategories(Array.isArray(data) ? [] : data?.categories);
+          addProducts(Array.isArray(data) ? data : data?.products);
+          foundCatalog = true;
+        } catch {
+          // Try the next public catalog shape.
+        }
       }
-      const data = res.data?.data || {};
-      const rawCategories = Array.isArray(data.categories) ? data.categories : [];
-      const rawProducts = Array.isArray(data.products) ? data.products : [];
+
+      for (const entry of productRequests) {
+        try {
+          const [endpoint, config] = Array.isArray(entry) ? entry : [entry, undefined];
+          const res = await http.get(endpoint, config);
+          const data = readPayload(res);
+          addProducts(Array.isArray(data) ? data : (data?.products || data?.items || []));
+        } catch {
+          // Try the next public products endpoint.
+        }
+      }
+
+      for (const endpoint of categoryRequests) {
+        try {
+          const res = await http.get(endpoint);
+          const data = readPayload(res);
+          addCategories(Array.isArray(data) ? data : (data?.categories || data?.items || []));
+        } catch {
+          // Try the next public categories endpoint.
+        }
+      }
+
+      if (!foundCatalog && productMap.size === 0 && categoryMap.size === 0) {
+        const res = await http.get('/public/catalog');
+        const data = readPayload(res) || {};
+        addCategories(data?.categories);
+        addProducts(data?.products);
+      }
+
       return {
-        categories: rawCategories.map(normaliseCategory).filter(Boolean),
-        products: rawProducts.map(normaliseProduct).filter(Boolean),
+        categories: Array.from(categoryMap.values()),
+        products: Array.from(productMap.values()),
       };
     },
   },

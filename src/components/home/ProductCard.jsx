@@ -20,7 +20,7 @@ const ProductCard = ({
   return (
     <article className={cn('group relative isolate flex flex-col', isUnavailable && 'cursor-not-allowed')}>
       {isUnavailable ? (
-        <span className="pointer-events-none absolute inset-0 z-10 rounded-[1rem] bg-black/38" aria-hidden="true" />
+        <span className="pointer-events-none absolute inset-0 z-10 rounded-[1rem] bg-[linear-gradient(180deg,rgb(255_255_255/0.14),rgb(240_200_90/0.08))] dark:bg-[linear-gradient(180deg,rgb(255_255_255/0.06),rgb(29_149_168/0.08))]" aria-hidden="true" />
       ) : null}
       <div className="relative overflow-hidden rounded-[1rem]">
         <img
@@ -28,11 +28,11 @@ const ProductCard = ({
           alt={productName}
           className={cn(
             'aspect-square w-full object-cover transition duration-500 group-hover:scale-105',
-            isUnavailable && 'brightness-[0.42] grayscale-[0.18]'
+            isUnavailable && 'brightness-[0.92] saturate-[0.88]'
           )}
         />
         {isUnavailable && (
-          <div className="absolute inset-0 z-20 bg-black/22">
+          <div className="absolute inset-0 z-20 bg-white/12 dark:bg-white/5">
             <UnavailableLockOverlay label={unavailableLabel} size="md" />
           </div>
         )}

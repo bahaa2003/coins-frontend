@@ -226,7 +226,7 @@ const Dashboard = () => {
           </div>
 
           <div
-            className="scrollbar-hide flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-smooth pb-1 sm:gap-3"
+            className="scrollbar-hide flex snap-x snap-mandatory items-stretch gap-2.5 overflow-x-auto scroll-smooth pb-1 sm:gap-3"
             dir={language === 'ar' ? 'rtl' : 'ltr'}
           >
             {bestSellingProducts.map((product) => {
@@ -243,23 +243,30 @@ const Dashboard = () => {
                     if (!isUnavailable) openPurchaseDialog(product);
                   }}
                   disabled={isUnavailable}
-                  className={`group relative isolate min-w-[38%] snap-start rounded-[1rem] border border-[color:rgb(var(--color-border-rgb)/0.7)] bg-[color:rgb(var(--color-card-rgb)/0.76)] p-2 text-center shadow-[0_14px_34px_-30px_rgb(var(--color-primary-rgb)/0.7)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.32)] min-[430px]:min-w-[30%] sm:min-w-[22%] lg:min-w-[17%] ${isUnavailable ? 'cursor-not-allowed hover:translate-y-0' : ''}`}
+                  className={`group relative isolate flex min-w-[38%] snap-start flex-col rounded-[1rem] border border-[color:rgb(var(--color-border-rgb)/0.7)] bg-[color:rgb(var(--color-card-rgb)/0.76)] p-2 text-center shadow-[0_14px_34px_-30px_rgb(var(--color-primary-rgb)/0.7)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-[color:rgb(var(--color-primary-rgb)/0.32)] min-[430px]:min-w-[30%] sm:min-w-[22%] lg:min-w-[17%] ${isUnavailable ? 'cursor-not-allowed hover:translate-y-0' : ''}`}
                   aria-label={productName}
                 >
                   {isUnavailable ? (
-                    <span className="pointer-events-none absolute inset-0 z-10 rounded-[1rem] bg-black/38" aria-hidden="true" />
+                    <span className="pointer-events-none absolute inset-0 z-10 rounded-[1rem] bg-[linear-gradient(180deg,rgb(255_255_255/0.14),rgb(240_200_90/0.08))] dark:bg-[linear-gradient(180deg,rgb(255_255_255/0.06),rgb(29_149_168/0.08))]" aria-hidden="true" />
                   ) : null}
-                  <span className="relative block overflow-hidden rounded-[0.85rem] bg-[color:rgb(var(--color-surface-rgb)/0.72)]">
+                  <span className="best-selling-media relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[0.85rem] bg-[color:rgb(var(--color-surface-rgb)/0.72)]">
                     <img
                       src={imageSrc}
                       alt={productName}
-                      className={`aspect-square w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04] ${isUnavailable ? 'brightness-[0.42] grayscale-[0.18]' : ''}`}
+                      className={`best-selling-image h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04] ${isUnavailable ? 'brightness-[0.92] saturate-[0.88]' : ''}`}
                       loading="lazy"
                       decoding="async"
                     />
                     {isUnavailable ? (
-                      <span className="absolute inset-0 z-20 bg-black/24">
-                        <UnavailableLockOverlay label={unavailableLabel} size="sm" />
+                      <span className="absolute inset-0 z-20 bg-white/12 dark:bg-white/5">
+                        <UnavailableLockOverlay label="" size="sm" />
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="relative z-20 mt-2 flex min-h-[1.75rem] items-center justify-center">
+                    {isUnavailable ? (
+                      <span className="unavailable-status-badge inline-flex min-h-6 max-w-full items-center justify-center rounded-full px-2.5 py-1 text-[0.68rem] font-black leading-none">
+                        {unavailableLabel}
                       </span>
                     ) : null}
                   </span>

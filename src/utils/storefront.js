@@ -80,10 +80,29 @@ export const sanitizeStorefrontQuery = (value) => normalizeSearchToken(value);
 const shouldKeepUnavailableProductVisible = (product = {}) => {
   const status = String(product?.status || '').trim().toLowerCase();
   const productStatus = String(product?.productStatus || '').trim().toLowerCase();
+  const stoppedStatuses = new Set([
+    'inactive',
+    'disabled',
+    'disable',
+    'stopped',
+    'stop',
+    'paused',
+    'pause',
+    'hidden',
+    'unavailable',
+    'not_available',
+    'not-available',
+    'out_of_service',
+    'out-of-service',
+    'suspended',
+    'blocked',
+    'off',
+    'closed',
+  ]);
 
-  return status === 'inactive'
+  return stoppedStatuses.has(status)
     || product?.isActive === false
-    || productStatus === 'unavailable';
+    || stoppedStatuses.has(productStatus);
 };
 
 export const getCurrencySymbol = (currencyCode = 'USD') => {

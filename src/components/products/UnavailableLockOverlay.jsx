@@ -31,7 +31,7 @@ const UnavailableLockOverlay = ({ label = 'غير متوفر', size = 'md', clas
   return (
     <span
       className={cn(
-        'pointer-events-none absolute inset-0 z-30 block overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_50%_28%,rgb(255_255_255/0.10),transparent_32%),linear-gradient(180deg,rgb(0_0_0/0.50),rgb(0_0_0/0.74))] shadow-[inset_0_1px_0_rgb(255_255_255/0.16),inset_0_-18px_30px_rgb(0_0_0/0.36)]',
+        'pointer-events-none absolute inset-0 z-30 block overflow-hidden border border-amber-200/45 bg-[radial-gradient(circle_at_50%_24%,rgb(255_255_255/0.88),transparent_34%),linear-gradient(180deg,rgb(244_253_255/0.72),rgb(255_248_226/0.78))] shadow-[inset_0_1px_0_rgb(255_255_255/0.88),inset_0_-18px_30px_rgb(29_149_168/0.08)] dark:border-cyan-200/24 dark:bg-[radial-gradient(circle_at_50%_24%,rgb(255_255_255/0.16),transparent_34%),linear-gradient(180deg,rgb(29_149_168/0.28),rgb(240_200_90/0.22))] dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.18),inset_0_-18px_30px_rgb(0_0_0/0.12)]',
         styles.panel,
         className
       )}
@@ -51,7 +51,7 @@ const UnavailableLockOverlay = ({ label = 'غير متوفر', size = 'md', clas
         alt=""
         draggable="false"
         className={cn(
-          'absolute z-50 max-w-none drop-shadow-[0_18px_22px_rgb(0_0_0/0.72)]',
+          'absolute z-50 max-w-none opacity-[0.92] drop-shadow-[0_16px_20px_rgb(15_23_42/0.26)] dark:opacity-[0.86] dark:drop-shadow-[0_16px_20px_rgb(0_0_0/0.42)]',
           styles.image
         )}
       />

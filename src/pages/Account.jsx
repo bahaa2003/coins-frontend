@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Camera, Eye, EyeOff, KeyRound, Mail, Phone, Save, ShieldCheck, User, UserCircle2, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -11,6 +12,7 @@ import useAdminStore from '../store/useAdminStore';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../components/ui/Toast';
 import { resolveUserAvatar } from '../utils/avatar';
+import { useBodyScrollLock } from '../utils/bodyScrollLock';
 import { getReadableErrorMessage } from '../utils/errorMessages';
 
 const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024;
@@ -151,6 +153,8 @@ const Account = () => {
   }));
   const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
   const [showPassword, setShowPassword] = useState({ current: false, next: false, confirm: false });
+
+  useBodyScrollLock(isPasswordModalOpen);
 
   useEffect(() => {
     const initialProfile = getProfileFromUser(user);
@@ -716,13 +720,14 @@ const Account = () => {
         </Card>
       </motion.section>
 
-      {isPasswordModalOpen ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 px-3 py-6 backdrop-blur-sm">
+      {typeof document !== 'undefined' && createPortal(
+        isPasswordModalOpen ? (
+        <div className="fixed inset-0 z-[280] flex h-[100dvh] max-h-[100dvh] items-center justify-center overflow-hidden bg-black/55 px-3 py-4 backdrop-blur-sm sm:py-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 12 }}
-            className="w-full max-w-lg overflow-hidden rounded-2xl border border-[color:rgb(var(--color-border-rgb)/0.9)] bg-[color:rgb(var(--color-card-rgb)/0.98)] p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.75)]"
+            className="w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[color:rgb(var(--color-border-rgb)/0.9)] bg-[color:rgb(var(--color-card-rgb)/0.98)] p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.75)]"
             role="dialog"
             aria-modal="true"
             aria-labelledby="change-password-title"
@@ -811,7 +816,9 @@ const Account = () => {
             </div>
           </motion.div>
         </div>
-      ) : null}
+        ) : null,
+        document.body
+      )}
 
       <SaveChangesBar
         isDirty={isDirty}

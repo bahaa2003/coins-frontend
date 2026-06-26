@@ -5,7 +5,7 @@ import apiClient from '../services/client';
 const dataProvider = (import.meta.env.VITE_DATA_PROVIDER || 'mock').toLowerCase();
 const isRealProvider = dataProvider === 'real';
 
-const MEDIA_CACHE_KEY = 'coins:media-cache:v1';
+const MEDIA_CACHE_KEY = 'coins:media-cache:v2';
 const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // keep storefront data stable while users scroll
 let productsRequest = null;
 let hasFetchedFromBackendThisSession = false;

@@ -1351,7 +1351,7 @@ const AdminProducts = () => {
                         loading="lazy"
                         decoding="async"
                         referrerPolicy="no-referrer"
-                        className={`h-full w-full object-cover ${isUnavailable || isHidden ? 'grayscale' : ''}`}
+                        className={`h-full w-full object-cover ${isUnavailable || isHidden ? 'brightness-[0.94] saturate-[0.9]' : ''}`}
                     />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center text-[var(--color-primary)]">
@@ -1359,7 +1359,7 @@ const AdminProducts = () => {
                     </div>
                 )}
                 {isUnavailable || isHidden ? (
-                    <span className="absolute inset-x-1 bottom-1 truncate rounded-md bg-black/65 px-1 py-0.5 text-center text-[8px] font-bold leading-none text-white">
+                    <span className="absolute inset-x-1 bottom-1 truncate rounded-md border border-amber-200/50 bg-[linear-gradient(180deg,rgb(255_255_255/0.86),rgb(255_248_226/0.82))] px-1 py-0.5 text-center text-[8px] font-bold leading-none text-amber-800 shadow-[0_8px_14px_-12px_rgb(15_23_42/0.38)] dark:border-cyan-200/24 dark:bg-[linear-gradient(180deg,rgb(15_23_42/0.72),rgb(29_149_168/0.42))] dark:text-cyan-50">
                         {isHidden ? (isEnglish ? 'Hidden' : 'مخفي') : (isEnglish ? 'Unavailable' : 'غير متوفر')}
                     </span>
                 ) : null}
@@ -1691,7 +1691,7 @@ const AdminProducts = () => {
                         return (
                             <article
                                 key={product.id}
-                                className={`rounded-lg border border-[color:rgb(var(--color-border-rgb)/0.78)] bg-[linear-gradient(180deg,rgb(var(--color-card-rgb)/0.9),rgb(var(--color-elevated-rgb)/0.72))] p-2 shadow-[var(--shadow-subtle)] transition hover:border-[color:rgb(var(--color-primary-rgb)/0.26)] sm:rounded-xl sm:p-3 ${isUnavailable || isHidden ? 'opacity-85' : ''}`}
+                                className="rounded-lg border border-[color:rgb(var(--color-border-rgb)/0.78)] bg-[linear-gradient(180deg,rgb(var(--color-card-rgb)/0.9),rgb(var(--color-elevated-rgb)/0.72))] p-2 shadow-[var(--shadow-subtle)] transition hover:border-[color:rgb(var(--color-primary-rgb)/0.26)] sm:rounded-xl sm:p-3"
                             >
                                 <div className="flex min-w-0 items-start gap-2 sm:gap-3">
                                     {renderProductImage(product, 'h-10 w-10 !rounded-lg sm:h-14 sm:w-14 sm:!rounded-xl')}

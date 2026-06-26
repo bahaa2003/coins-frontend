@@ -13,6 +13,8 @@ import useAuthStore from '../store/useAuthStore';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import HeaderBrand from '../components/layout/HeaderBrand';
 import PublicSidebar from '../components/layout/PublicSidebar';
+import SiteCopyrightFooter from '../components/layout/SiteCopyrightFooter';
+import { useBodyScrollLock } from '../utils/bodyScrollLock';
 
 const ContactUs = ({ accountOnly = false }) => {
   const navigate = useNavigate();
@@ -25,6 +27,8 @@ const ContactUs = ({ accountOnly = false }) => {
   const [messageError, setMessageError] = useState('');
   const [selectedComplaint, setSelectedComplaint] = useState('');
   const [submitted, setSubmitted] = useState(false);
+
+  useBodyScrollLock(accountOnly && isMenuOpen);
 
   const ui = useMemo(() => {
     if (isArabic) {
@@ -246,7 +250,7 @@ const ContactUs = ({ accountOnly = false }) => {
     )}>
       {accountOnly ? (
         <>
-          <header className="fixed inset-x-0 top-0 z-50 border-b border-[color:rgb(var(--color-border-rgb)/0.32)] bg-[color:rgb(var(--color-background-rgb)/0.88)] shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.36)] backdrop-blur-xl">
+          <header className="fixed inset-x-0 top-0 z-[90] border-b border-[color:rgb(var(--color-border-rgb)/0.32)] bg-[color:rgb(var(--color-background-rgb)/0.88)] shadow-[0_18px_44px_-34px_rgb(var(--color-primary-rgb)/0.36)] backdrop-blur-xl">
             <div className="mx-auto max-w-[var(--shell-max-width)] px-3 py-2 sm:px-4 lg:px-6">
               <div dir="ltr" className="coins-stores-panel grid min-h-[2.95rem] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-[20px] border px-2.5 py-1 sm:min-h-[3.25rem] sm:gap-5 sm:rounded-[28px] sm:px-5 sm:py-1.5">
                 <div className="col-start-1 row-start-1 flex items-center gap-1 justify-self-start sm:gap-2">
@@ -444,6 +448,9 @@ const ContactUs = ({ accountOnly = false }) => {
         </motion.section>
       </div>
       </div>
+      {accountOnly ? (
+        <SiteCopyrightFooter isArabic={isArabic} />
+      ) : null}
     </div>
   );
 };

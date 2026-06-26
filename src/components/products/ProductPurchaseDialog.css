@@ -102,8 +102,8 @@
 
 .purchase-dialog-image.is-unavailable img,
 .purchase-dialog-image.is-unavailable svg {
-  opacity: 0.62;
-  filter: grayscale(0.2) brightness(0.62);
+  opacity: 0.9;
+  filter: saturate(0.9) brightness(0.94);
 }
 
 .purchase-dialog-description {

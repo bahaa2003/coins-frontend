@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -32,6 +33,7 @@ import {
 import { resolveUserAvatar } from '../../utils/avatar';
 import { resolveImageUrl } from '../../utils/imageUrl';
 import { buildWhatsAppLink, getAdminWhatsAppNumber } from '../../utils/whatsapp';
+import { useBodyScrollLock } from '../../utils/bodyScrollLock';
 
 const DetailTile = ({ label, value, valueNode = null, hint = '', onClick, copyable = false, copyTone = 'primary', icon: Icon = ClipboardList }) => {
   const Component = onClick ? 'button' : 'div';
@@ -160,6 +162,7 @@ const OrderDetailsDrawer = ({
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [complaintText, setComplaintText] = useState('');
   const [complaintError, setComplaintError] = useState('');
+  const isDrawerVisible = Boolean(isOpen && order);
   const primaryIdentifierField = order?.primaryIdentifierField || null;
   const rawRequestFields = Array.isArray(order?.requestDetails?.fields) ? order.requestDetails.fields : [];
   const requestFields = rawRequestFields.filter((field) => {
@@ -338,8 +341,9 @@ const OrderDetailsDrawer = ({
     } : null,
   ].filter(Boolean);
   const FeedbackIcon = feedbackStyles[customerFeedback?.tone]?.icon || Hourglass;
+  useBodyScrollLock(isDrawerVisible);
 
-  return (
+  const drawer = (
     <AnimatePresence>
       {isOpen && order ? (
         <>
@@ -353,15 +357,15 @@ const OrderDetailsDrawer = ({
             aria-label={isArabic ? 'إغلاق' : 'Close'}
           />
 
-          <div className="pointer-events-none fixed inset-0 z-[81] flex justify-end">
+          <div className="pointer-events-none fixed inset-0 z-[81] flex h-[100dvh] max-h-[100dvh] justify-end overflow-hidden">
             <motion.aside
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-              className="pointer-events-auto h-full w-full max-w-[34rem] overflow-hidden border-s border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[radial-gradient(circle_at_top_left,rgb(var(--color-primary-rgb)/0.13),transparent_36%),linear-gradient(180deg,rgb(var(--color-surface-rgb)/0.99),rgb(var(--color-bg-rgb)/0.99))] shadow-[0_32px_120px_-46px_rgb(var(--color-primary-rgb)/0.42)]"
+              className="pointer-events-auto h-[100dvh] max-h-[100dvh] w-full max-w-[34rem] overflow-hidden border-s border-[color:rgb(var(--color-primary-rgb)/0.18)] bg-[radial-gradient(circle_at_top_left,rgb(var(--color-primary-rgb)/0.13),transparent_36%),linear-gradient(180deg,rgb(var(--color-surface-rgb)/0.99),rgb(var(--color-bg-rgb)/0.99))] shadow-[0_32px_120px_-46px_rgb(var(--color-primary-rgb)/0.42)]"
             >
-              <div className="flex h-full flex-col">
+              <div className="flex h-full min-h-0 flex-col">
                 <div className="relative overflow-hidden border-b border-[color:rgb(var(--color-primary-rgb)/0.16)] px-4 pb-4 pt-4">
                   <div className="pointer-events-none absolute inset-x-6 -top-24 h-36 rounded-full bg-[color:rgb(var(--color-primary-rgb)/0.16)] blur-3xl" />
                   <div className="relative flex items-start justify-between gap-3">
@@ -404,7 +408,7 @@ const OrderDetailsDrawer = ({
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 py-4">
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
                   <div className="space-y-4">
                     <section className="relative overflow-hidden rounded-[1.35rem] border border-[color:rgb(var(--color-primary-rgb)/0.2)] bg-[linear-gradient(145deg,rgb(var(--color-card-rgb)/0.9),rgb(var(--color-surface-rgb)/0.58))] p-4 shadow-[0_26px_70px_-52px_rgb(var(--color-primary-rgb)/0.65)]">
                       <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgb(var(--color-primary-rgb)/0.72),transparent)]" />
@@ -685,6 +689,10 @@ const OrderDetailsDrawer = ({
       ) : null}
     </AnimatePresence>
   );
+
+  if (typeof document === 'undefined') return drawer;
+
+  return createPortal(drawer, document.body);
 };
 
 export default OrderDetailsDrawer;

@@ -15,6 +15,7 @@ const TopSellingCarousel = ({
   emptyDescription,
   soldLabel,
   trendingLabel,
+  onOpen,
 }) => {
   const trackRef = useRef(null);
   const unavailableLabel = isRTL ? 'غير متاح' : 'Unavailable';
@@ -39,7 +40,7 @@ const TopSellingCarousel = ({
   }
 
   return (
-    <div className="rounded-[1.75rem] border border-[color:rgb(var(--color-border-rgb)/0.9)] bg-[color:rgb(var(--color-card-rgb)/0.95)] p-4 shadow-[var(--shadow-subtle)] sm:p-5">
+    <div className="top-selling-showcase rounded-[1.45rem] border border-[color:rgb(var(--color-border-rgb)/0.75)] bg-[color:rgb(var(--color-card-rgb)/0.95)] p-3 shadow-[var(--shadow-subtle)] sm:p-4">
       <div className="mb-4 flex items-center justify-end gap-2">
         <Button
           type="button"
@@ -78,11 +79,12 @@ const TopSellingCarousel = ({
               key={product.id}
               className={cn(
                 'product-led-card relative isolate snap-start min-w-[82%] p-3 sm:min-w-[48%] sm:p-4 lg:min-w-[31%]',
+                'top-selling-card',
                 isUnavailable && 'cursor-not-allowed'
               )}
             >
               {isUnavailable ? (
-                <span className="pointer-events-none absolute inset-0 z-10 rounded-[1.75rem] bg-black/38" aria-hidden="true" />
+                <span className="pointer-events-none absolute inset-0 z-10 rounded-[1.75rem] bg-[linear-gradient(180deg,rgb(255_255_255/0.14),rgb(240_200_90/0.08))] dark:bg-[linear-gradient(180deg,rgb(255_255_255/0.06),rgb(29_149_168/0.08))]" aria-hidden="true" />
               ) : null}
               <div className="relative overflow-hidden rounded-[1.4rem]">
                 <img
@@ -90,12 +92,12 @@ const TopSellingCarousel = ({
                   alt={product.displayName}
                   className={cn(
                     'aspect-[1.14] w-full object-cover transition duration-500',
-                    isUnavailable && 'brightness-[0.42] grayscale-[0.18]'
+                    isUnavailable && 'brightness-[0.92] saturate-[0.88]'
                   )}
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,11,11,0.08)_0%,rgba(11,11,11,0.22)_38%,rgba(11,11,11,0.86)_100%)]" />
                 {isUnavailable && (
-                  <div className="absolute inset-0 z-20 bg-black/20">
+                  <div className="absolute inset-0 z-20 bg-white/12 dark:bg-white/5">
                     <UnavailableLockOverlay label={resolvedUnavailableLabel} size="lg" />
                   </div>
                 )}
@@ -132,13 +134,24 @@ const TopSellingCarousel = ({
                     {resolvedUnavailableLabel}
                   </button>
                 ) : (
-                  <Link
-                    to={`/products/${product.id}`}
-                    className={actionClassName}
-                  >
-                    <ShoppingBag className="h-4 w-4" />
-                    {buyLabel}
-                  </Link>
+                  onOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpen(product)}
+                      className={actionClassName}
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                      {buyLabel}
+                    </button>
+                  ) : (
+                    <Link
+                      to={`/products/${product.id}`}
+                      className={actionClassName}
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                      {buyLabel}
+                    </Link>
+                  )
                 )}
               </div>
             </article>

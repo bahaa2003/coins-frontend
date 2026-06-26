@@ -158,16 +158,15 @@ const ProductSearchBar = ({
                     type="button"
                     onMouseDown={(event) => {
                       event.preventDefault();
-                      if (!isUnavailable) handleSelect(product);
+                      handleSelect(product);
                     }}
-                    disabled={isUnavailable}
                     className={cn(
                       'relative isolate flex w-full items-center gap-2.5 px-2.5 py-2 text-start transition-colors hover:bg-[color:rgb(var(--color-primary-rgb)/0.08)]',
-                      isUnavailable && 'cursor-not-allowed'
+                      isUnavailable && 'hover:bg-[color:rgb(var(--color-primary-rgb)/0.05)]'
                     )}
                   >
                     {isUnavailable ? (
-                      <span className="pointer-events-none absolute inset-0 z-10 bg-black/30" aria-hidden="true" />
+                      <span className="pointer-events-none absolute inset-0 z-10 bg-white/14 dark:bg-white/5" aria-hidden="true" />
                     ) : null}
                     <div className="relative z-20 h-11 w-11 shrink-0 overflow-hidden rounded-[0.95rem] border border-[color:rgb(var(--color-border-rgb)/0.84)] bg-[color:rgb(var(--color-elevated-rgb)/0.88)]">
                       <img
@@ -176,10 +175,10 @@ const ProductSearchBar = ({
                         loading="lazy"
                         decoding="async"
                         sizes="44px"
-                        className={cn('h-full w-full object-cover', isUnavailable && 'brightness-[0.48] grayscale-[0.18]')}
+                        className={cn('h-full w-full object-cover', isUnavailable && 'brightness-[0.92] saturate-[0.88]')}
                       />
                       {isUnavailable ? (
-                        <span className="absolute inset-0 bg-black/20 text-yellow-300">
+                        <span className="absolute inset-0 bg-white/12 text-yellow-300 dark:bg-white/5">
                           <UnavailableLockOverlay label={unavailableLabel} size="xs" />
                         </span>
                       ) : null}
